@@ -108,7 +108,10 @@ def bake(zone, cfg, preview_dir=None):
     if cfg['bounds']:
         minx, miny, maxx, maxy = cfg['bounds']
     else:
-        pts = [p for _, cells in layers for p in cells]
+        # bounds come from the ground/water layers only, so tree canopies hanging past the
+        # edge of the terrain don't add empty black margins to the baked map
+        skip = set(cfg['over'])
+        pts = [p for name, cells in layers if name not in skip for p in cells]
         minx, miny = min(p[0] for p in pts), min(p[1] for p in pts)
         maxx, maxy = max(p[0] for p in pts), max(p[1] for p in pts)
     W, H = maxx - minx + 1, maxy - miny + 1

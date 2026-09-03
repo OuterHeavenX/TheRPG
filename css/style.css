@@ -150,3 +150,120 @@ button:disabled { opacity: 0.4; cursor: default; }
   display: flex; align-items: center; justify-content: center;
   font-size: 8px; color: #fff; text-shadow: 1px 1px 0 #000;
 }
+
+/* ---------- Story: objective, location cards, title card, dialogue ---------- */
+#hud .objective { margin-top: 6px; font-size: 8px; color: #9fe3ff; line-height: 1.6; }
+#hud .objective .label { color: #667; margin-right: 4px; }
+#hud.dimmed { opacity: 0.35; }
+
+#location {
+  position: fixed;
+  top: 18%; left: 50%; transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  animation: banner 4.2s ease-out forwards;
+}
+#location-title {
+  font-size: clamp(14px, 2.6vw, 22px);
+  color: #e8e4d8;
+  letter-spacing: 4px;
+  text-shadow: 3px 3px 0 #000, 0 0 18px rgba(79, 214, 200, 0.35);
+}
+#location-sub { margin-top: 10px; font-size: 9px; color: #9aa4b8; text-shadow: 2px 2px 0 #000; }
+
+#titlecard {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  pointer-events: none;
+  animation: titlecard 3.4s ease-out forwards;
+}
+#titlecard .tc-name {
+  font-size: clamp(34px, 8vw, 78px);
+  color: #e8e4d8;
+  letter-spacing: 10px;
+  text-shadow: 0 0 30px rgba(79, 214, 200, 0.55), 4px 4px 0 #000;
+}
+#titlecard .tc-sub { margin-top: 18px; font-size: 10px; color: #4fd6c8; letter-spacing: 6px; text-shadow: 2px 2px 0 #000; }
+@keyframes titlecard {
+  0% { opacity: 0; letter-spacing: 2px; }
+  20% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+#dialog {
+  position: fixed;
+  left: 50%; bottom: 13vh; transform: translateX(-50%);
+  width: min(720px, 88vw);
+  padding: 14px 18px 22px;
+  background: rgba(6, 6, 12, 0.88);
+  border: 2px solid #3a3a52;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.9;
+  color: #e8e4d8;
+  cursor: pointer;
+}
+#dlg-speaker { font-size: 9px; color: #4fd6c8; letter-spacing: 2px; margin-bottom: 8px; }
+#dlg-speaker.unseen { color: #b78cff; }
+#dlg-text { min-height: 2.2em; }
+.dlg-hint { position: absolute; right: 12px; bottom: 6px; font-size: 7px; color: #556; }
+
+#skip {
+  position: fixed; right: 18px; bottom: 18px;
+  width: 120px; height: 8px;
+  background: #1a1a26; border: 2px solid #3a3a52;
+}
+#skip-fill { height: 100%; width: 0; background: #4fd6c8; }
+
+#journal-list {
+  list-style: none; margin: 0; padding: 0;
+  max-width: 640px; max-height: 42vh; overflow-y: auto;
+  font-size: 9px; line-height: 1.9; color: #cfd3e6; text-align: left;
+}
+#journal-list li { padding: 6px 10px; border-left: 3px solid #4fd6c8; margin-bottom: 6px; background: rgba(255,255,255,0.03); }
+.screen .sub b { color: #9fe3ff; }
+
+/* ---------- Touch controls ---------- */
+#touch { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+#joy-zone { position: absolute; left: 0; top: 0; bottom: 0; width: 55%; pointer-events: auto; touch-action: none; }
+#joy {
+  position: absolute; width: 0; height: 0; opacity: 0; transition: opacity 0.15s;
+}
+#joy.active { opacity: 1; }
+#joy::before {
+  content: ''; position: absolute; left: -56px; top: -56px; width: 112px; height: 112px;
+  border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.25);
+}
+#joy-knob {
+  position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(79, 214, 200, 0.55); border: 2px solid rgba(255,255,255,0.7);
+}
+.tbtn {
+  position: absolute; pointer-events: auto; touch-action: none;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; border: 3px solid rgba(255,255,255,0.55);
+  background: rgba(20, 22, 40, 0.55); color: #fff;
+  font-family: var(--font); text-shadow: 2px 2px 0 #000; user-select: none;
+}
+.tbtn.down { background: rgba(79, 214, 200, 0.6); }
+.tbtn.latched { border-color: #ffd866; color: #ffd866; }
+#tb-attack { right: max(18px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); width: 84px; height: 84px; font-size: 30px; }
+#tb-run { right: max(118px, calc(env(safe-area-inset-right) + 100px)); bottom: max(34px, env(safe-area-inset-bottom)); width: 58px; height: 58px; font-size: 9px; }
+#tb-menu { right: max(18px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top)); width: 46px; height: 46px; font-size: 18px; }
+.touch-only { display: none; }
+body.touch .touch-only { display: block; }
+body.touch #hud { font-size: 9px; min-width: 200px; padding: 8px 10px; }
+body.touch #boss-bar { bottom: 120px; }
+body.touch #dialog { bottom: 18vh; font-size: 10px; }
+body.touch #skip { bottom: 120px; right: 18px; }
+body.touch .dlg-hint { display: none; }
+@media (max-width: 700px) {
+  .screen h1 { font-size: 26px; }
+  .controls { font-size: 7px; }
+  button { font-size: 10px; padding: 12px 16px; }
+}
+body.touch #hud { max-width: calc(100vw - 96px); font-size: 8px; }
+body.touch #hud .stats { font-size: 7px; }
+body.touch #hud .objective { font-size: 7px; }
+body.touch #hud .bar { height: 11px; }

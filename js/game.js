@@ -1,43 +1,50 @@
-// Core game: zones, spawning, combat resolution, camera, rendering, HUD.
+// Core game: zones, spawning, combat resolution, story triggers, camera, rendering, HUD.
 window.RPG = window.RPG || {};
 
 const E = (key, name, hp, dmg, speed, xp, extra) => Object.assign(
   { key: 'enemies/' + key, name, hp, dmg, speed, xp, aggro: 90, reach: 18, atkCd: 1.1 }, extra || {});
 
+// Enemy roster. Names follow VEILBOUND canon where a role exists (March Husk, Vein Sentry,
+// Vein-Corrupted, The Archivist); the rest are TheRPG names for creatures of the waking Vein.
 RPG.ENEMIES = {
-  slime1: E('slime1', 'Slime', 30, 5, 30, 6, { reach: 14 }),
-  slime2: E('slime2', 'Blue Slime', 40, 7, 32, 9, { reach: 14 }),
-  slime3: E('slime3', 'Toxic Slime', 55, 9, 34, 12, { reach: 14 }),
-  slime_monster1: E('slime_monster1', 'Slime Beast', 65, 10, 38, 14, { reach: 15 }),
-  slime_monster2: E('slime_monster2', 'Slime Brute', 140, 18, 40, 34, { reach: 15 }),
-  slime_monster3: E('slime_monster3', 'Slime King', 180, 22, 42, 42, { reach: 16 }),
-  goblin1: E('goblin1', 'Goblin', 70, 10, 55, 16, { reach: 20 }),
-  goblin2: E('goblin2', 'Goblin Raider', 90, 13, 58, 22, { reach: 20 }),
-  goblin3: E('goblin3', 'Goblin Chief', 120, 16, 60, 30, { reach: 20 }),
-  orc1: E('orc1', 'Orc', 150, 18, 50, 36, { reach: 22 }),
-  orc2: E('orc2', 'Orc Warrior', 190, 22, 52, 44, { reach: 22 }),
-  orc3: E('orc3', 'Orc Warlord', 240, 26, 55, 55, { reach: 22 }),
-  lizardman1: E('lizardman1', 'Lizardman', 200, 24, 62, 50, { reach: 22, aggro: 110 }),
-  lizardman2: E('lizardman2', 'Lizard Knight', 260, 28, 64, 62, { reach: 22, aggro: 110 }),
-  lizardman3: E('lizardman3', 'Lizard Lord', 340, 34, 66, 80, { reach: 22, aggro: 110 }),
-  vampire1: E('vampire1', 'Vampire', 320, 32, 70, 80, { reach: 22, aggro: 120 }),
-  vampire2: E('vampire2', 'Vampire Noble', 400, 38, 72, 100, { reach: 22, aggro: 120 }),
-  vampire3: E('vampire3', 'Vampire Count', 500, 44, 74, 130, { reach: 22, aggro: 120 }),
-  demon1: E('demon1', 'Imp', 550, 46, 60, 150, { reach: 28, aggro: 140, big: true }),
-  demon2: E('demon2', 'Demon', 700, 54, 62, 200, { reach: 28, aggro: 140, big: true }),
-  demon3: E('demon3', 'Demon Lord', 2600, 70, 58, 1200, { reach: 32, aggro: 400, atkCd: 0.9, big: true, boss: true }),
+  slime1: E('slime1', 'March Husk', 30, 5, 30, 6, { reach: 14 }),
+  slime2: E('slime2', 'Pale Husk', 40, 7, 32, 9, { reach: 14 }),
+  slime3: E('slime3', 'Blight Husk', 55, 9, 34, 12, { reach: 14 }),
+  slime_monster1: E('slime_monster1', 'Husk Brood', 65, 10, 38, 14, { reach: 15 }),
+  corrupted: E('slime_monster2', 'Vein-Corrupted', 110, 12, 42, 40, { reach: 16, aggro: 140, special: 'corrupted' }),
+  slime_monster2: E('slime_monster2', 'Husk Brute', 140, 18, 40, 34, { reach: 15 }),
+  slime_monster3: E('slime_monster3', 'Husk Mother', 180, 22, 42, 42, { reach: 16 }),
+  goblin1: E('goblin1', 'Scavenger', 70, 10, 55, 16, { reach: 20 }),
+  goblin2: E('goblin2', 'Scavenger Raider', 90, 13, 58, 22, { reach: 20 }),
+  goblin3: E('goblin3', 'Scavenger Chief', 120, 16, 60, 30, { reach: 20 }),
+  orc1: E('orc1', 'Hollow Brute', 150, 18, 50, 36, { reach: 22 }),
+  orc2: E('orc2', 'Hollow Warrior', 190, 22, 52, 44, { reach: 22 }),
+  orc3: E('orc3', 'Hollow Warlord', 240, 26, 55, 55, { reach: 22 }),
+  lizardman1: E('lizardman1', 'Vein Sentry', 200, 24, 62, 50, { reach: 22, aggro: 110 }),
+  lizardman2: E('lizardman2', 'Sentry Knight', 260, 28, 64, 62, { reach: 22, aggro: 110 }),
+  lizardman3: E('lizardman3', 'Sentry Lord', 340, 34, 66, 80, { reach: 22, aggro: 110 }),
+  vampire1: E('vampire1', 'Archive Warden', 320, 32, 70, 80, { reach: 22, aggro: 120 }),
+  vampire2: E('vampire2', 'Warden Adept', 400, 38, 72, 100, { reach: 22, aggro: 120 }),
+  vampire3: E('vampire3', 'Warden Prime', 500, 44, 74, 130, { reach: 22, aggro: 120 }),
+  demon1: E('demon1', 'Vein Horror', 550, 46, 60, 150, { reach: 28, aggro: 140, big: true }),
+  demon2: E('demon2', 'Vein Fiend', 700, 54, 62, 200, { reach: 28, aggro: 140, big: true }),
+  demon3: E('demon3', 'The Archivist', 2600, 70, 58, 1200, { reach: 32, aggro: 400, atkCd: 0.9, big: true, boss: true }),
 };
 
+// The journey: the forest road home, the Hollow March east of Greyhaven, the Sunken Archive.
 RPG.ZONES = [
-  { id: 'grassland', name: 'Verdant Glades', recommended: 1, count: 10, respawn: 7,
-    roster: ['slime1', 'slime1', 'slime2', 'slime2', 'slime3', 'slime_monster1', 'goblin1', 'goblin1', 'goblin2'] },
-  { id: 'forest', name: 'Whispering Forest', recommended: 3, count: 12, respawn: 6,
-    roster: ['goblin3', 'orc1', 'orc1', 'orc2', 'orc3', 'lizardman1', 'lizardman1', 'lizardman2', 'slime_monster2', 'slime_monster3'] },
-  { id: 'cursed', name: 'Cursed Lands', recommended: 6, count: 12, respawn: 6, boss: 'demon3',
-    roster: ['lizardman3', 'vampire1', 'vampire1', 'vampire2', 'vampire2', 'vampire3', 'demon1', 'demon1', 'demon2'] },
+  { id: 'forest', name: 'The Forest Path', recommended: 1, count: 10, respawn: 7,
+    roster: ['slime1', 'slime1', 'slime2', 'slime2', 'slime3', 'slime_monster1', 'goblin1', 'goblin1', 'goblin2'],
+    guardian: 'corrupted', arrive: null, leave: ['title', 'hall', 'toll'] },
+  { id: 'grassland', name: 'Hollow March', recommended: 3, count: 12, respawn: 6,
+    roster: ['goblin3', 'orc1', 'orc1', 'orc2', 'orc3', 'lizardman1', 'lizardman1', 'lizardman2', 'slime_monster2', 'slime_monster3'],
+    arrive: 'march', leave: null },
+  { id: 'cursed', name: 'The Sunken Archive', recommended: 6, count: 12, respawn: 6, boss: 'demon3',
+    roster: ['lizardman3', 'vampire1', 'vampire1', 'vampire2', 'vampire2', 'vampire3', 'demon1', 'demon1', 'demon2'],
+    arrive: 'descent', leave: null },
 ];
 
-RPG.SAVE_KEY = 'therpg-save-v1';
+RPG.SAVE_KEY = 'therpg-save-v2';
 
 RPG.Game = class {
   constructor(canvas, ui) {
@@ -45,12 +52,15 @@ RPG.Game = class {
     this.ctx = canvas.getContext('2d');
     this.ctx.imageSmoothingEnabled = false;
     this.ui = ui;
-    this.input = { up: false, down: false, left: false, right: false, run: false, attackPressed: false };
+    this.input = { up: false, down: false, left: false, right: false, run: false, attackPressed: false, action: false };
     this.scale = 3;
     this.running = false;
     this.paused = false;
     this.time = 0;
     this.shake = 0;
+    this.flags = {};
+    this.objective = '';
+    this.story = new RPG.Story(this, ui);
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -68,14 +78,25 @@ RPG.Game = class {
     this.player.kills = save ? save.kills || 0 : 0;
     this.zoneIndex = save ? Math.min(save.zone || 0, RPG.ZONES.length - 1) : 0;
     this.bossDefeated = !!(save && save.bossDefeated);
-    this.loadZone(this.zoneIndex, 'entry');
+    this.flags = (save && save.flags) || {};
+    this.objective = (save && save.objective) || 'Reach Greyhaven';
     this.running = true;
     this.paused = false;
     this.gameOver = false;
     this.ui.showHud(true);
+    this.ui.setObjective(this.objective);
+    if (!save) {
+      // A new journey opens on the memory and the void, with the world hidden behind the veil.
+      this.story.target.black = 1;
+      this.story.fx.black = 1;
+      this.loadZone(0, 'entry', true);
+      this.story.play([RPG.SCENES.memory, RPG.SCENES.void]);
+    } else {
+      this.loadZone(this.zoneIndex, 'entry', false);
+    }
   }
 
-  loadZone(index, at) {
+  loadZone(index, at, silent) {
     this.zoneIndex = index;
     this.zone = RPG.ZONES[index];
     this.map = new RPG.GameMap(this.zone.id);
@@ -83,6 +104,7 @@ RPG.Game = class {
     this.pickups = [];
     this.fx = [];
     this.boss = null;
+    this.guardian = null;
     this.respawnTimer = this.zone.respawn;
     const p = this.player;
     const spawn = this.map.tileCenter(at === 'exit' ? this.map.exit : this.map.entry);
@@ -93,16 +115,26 @@ RPG.Game = class {
     this.exitPortal = this.map.tileCenter(this.map.exit);
     this.entryPortal = index > 0 ? this.map.tileCenter(this.map.entry) : null;
     for (let i = 0; i < this.zone.count; i++) this.spawnEnemy(true);
+
     if (this.zone.boss && !this.bossDefeated) {
       const near = this.map.nearestWalkable(this.exitPortal[0] - 40, this.exitPortal[1]);
       this.boss = new RPG.Enemy(RPG.ENEMIES[this.zone.boss], near[0], near[1]);
       this.boss.dir = 2;
       this.enemies.push(this.boss);
     }
-    this.ui.banner(this.zone.name, 'Recommended level ' + this.zone.recommended +
-      (this.zone.boss ? ' · the Demon Lord awaits' : ''));
+    if (this.zone.guardian && !this.flags['prologue.creature']) {
+      const near = this.map.nearestWalkable(this.exitPortal[0] - 36, this.exitPortal[1] + 8);
+      this.guardian = new RPG.Enemy(RPG.ENEMIES[this.zone.guardian], near[0], near[1]);
+      this.guardian.dir = 2;
+      this.enemies.push(this.guardian);
+    }
     this.ui.showBoss(this.boss);
     this.save();
+
+    if (silent) return;
+    const arrive = this.zone.arrive && !this.flags[RPG.SCENES[this.zone.arrive].id] ? RPG.SCENES[this.zone.arrive] : null;
+    if (arrive) this.story.play(arrive);
+    else this.ui.banner(this.zone.name, 'Recommended level ' + this.zone.recommended);
   }
 
   spawnEnemy(initial) {
@@ -119,11 +151,17 @@ RPG.Game = class {
     }
   }
 
+  setObjective(text) {
+    this.objective = text;
+    this.ui.setObjective(text);
+  }
+
   save() {
     try {
       localStorage.setItem(RPG.SAVE_KEY, JSON.stringify({
         level: this.player.level, xp: this.player.xp, zone: this.zoneIndex,
         kills: this.player.kills, bossDefeated: this.bossDefeated,
+        flags: this.flags, objective: this.objective,
       }));
     } catch (e) { /* storage unavailable */ }
   }
@@ -172,7 +210,10 @@ RPG.Game = class {
     if (e.boss) {
       this.bossDefeated = true;
       this.pickups.push(new RPG.Heart(e.x, e.y, true));
-      setTimeout(() => this.victory(), 1800);
+      setTimeout(() => this.story.play(RPG.SCENES.welcome, () => this.victory()), 1500);
+    } else if (e.def.special === 'corrupted') {
+      this.pickups.push(new RPG.Heart(e.x, e.y, true));
+      setTimeout(() => this.story.play(RPG.SCENES.creature), 900);
     } else if (Math.random() < 0.22) {
       this.pickups.push(new RPG.Heart(e.x, e.y, false));
     }
@@ -183,7 +224,8 @@ RPG.Game = class {
     const p = this.player;
     RPG.Audio.levelUp();
     this.fx.push(new RPG.FloatText(p.x, p.y - 30, 'LEVEL UP!', '#ffd866'));
-    this.ui.banner('Level ' + p.level + '!', 'HP ' + p.maxHp + ' · Attack ' + p.dmg);
+    this.ui.banner('Level ' + p.level, 'HP ' + p.maxHp + ' · Shardblade ' + p.dmg);
+    if (p.level >= 5 && !this.flags['axiom.stirs']) setTimeout(() => this.story.play(RPG.SCENES.axiom), 1200);
     this.save();
   }
 
@@ -196,7 +238,8 @@ RPG.Game = class {
   retry() {
     this.gameOver = false;
     this.player.hp = this.player.maxHp;
-    this.loadZone(this.zoneIndex, 'entry');
+    this.loadZone(this.zoneIndex, 'entry', true);
+    this.ui.banner(this.zone.name, 'The hearth takes the ache out of you. Try again.');
   }
 
   victory() {
@@ -205,9 +248,34 @@ RPG.Game = class {
     this.ui.showVictory(this.player);
   }
 
+  // Portal gates: the forest is held by the Vein-Corrupted, the Archive by the Archivist.
+  exitOpen() {
+    if (this.zoneIndex >= RPG.ZONES.length - 1) return false;
+    if (this.guardian && this.guardian.state !== 'dead') return false;
+    return true;
+  }
+
+  goToZone(index, at) {
+    const leave = at === 'entry' ? this.zone.leave : null;
+    const scenes = leave ? leave.map((k) => RPG.SCENES[k]).filter((s) => !this.flags[s.id]) : [];
+    if (scenes.length) {
+      this.story.play(scenes, () => this.loadZone(index, at, false));
+    } else {
+      RPG.Audio.portal();
+      this.loadZone(index, at, false);
+    }
+  }
+
   // ------------------------------------------------------------ update
   update(dt) {
     if (!this.running || this.paused) return;
+    if (this.story.active) {
+      this.story.update(dt, this.input.action);
+      this.shake = Math.max(0, this.shake - dt);
+      this.ui.updateHud(this);
+      return;
+    }
+    this.story.update(dt, false);
     this.time += dt;
     const p = this.player, map = this.map;
     p.update(dt, this);
@@ -232,7 +300,7 @@ RPG.Game = class {
     this.enemies = this.enemies.filter((e) => !e.remove);
 
     // respawns
-    const alive = this.enemies.filter((e) => e.state !== 'dead' && !e.boss).length;
+    const alive = this.enemies.filter((e) => e.state !== 'dead' && !e.boss && !e.def.special).length;
     this.respawnTimer -= dt;
     if (this.respawnTimer <= 0) {
       this.respawnTimer = this.zone.respawn;
@@ -255,19 +323,25 @@ RPG.Game = class {
     for (const f of this.fx) f.update(dt);
     this.fx = this.fx.filter((f) => !f.remove);
 
-    // portals
+    // story triggers
     if (p.state !== 'dead') {
+      if (this.zoneIndex === 0 && !this.flags['prologue.vision'] && p.x > map.pw * 0.45) {
+        this.story.play(RPG.SCENES.vision);
+      }
+      if (this.boss && this.boss.state !== 'dead' && !this.flags['archive.archivist'] &&
+          Math.hypot(this.boss.x - p.x, this.boss.y - p.y) < 130) {
+        this.story.play(RPG.SCENES.archivist);
+      }
+    }
+
+    // portals
+    if (p.state !== 'dead' && !this.story.active) {
       const nearExit = Math.hypot(p.x - this.exitPortal[0], p.y - this.exitPortal[1]) < 10;
       const nearEntry = this.entryPortal && Math.hypot(p.x - this.entryPortal[0], p.y - this.entryPortal[1]) < 10;
       if (this.portalLock && !nearExit && !nearEntry) this.portalLock = false;
       if (!this.portalLock) {
-        if (nearExit && this.zoneIndex < RPG.ZONES.length - 1 && (!this.boss || this.boss.state === 'dead')) {
-          RPG.Audio.portal();
-          this.loadZone(this.zoneIndex + 1, 'entry');
-        } else if (nearEntry) {
-          RPG.Audio.portal();
-          this.loadZone(this.zoneIndex - 1, 'exit');
-        }
+        if (nearExit && this.exitOpen()) this.goToZone(this.zoneIndex + 1, 'entry');
+        else if (nearEntry) this.goToZone(this.zoneIndex - 1, 'exit');
       }
     }
 
@@ -295,7 +369,6 @@ RPG.Game = class {
     ctx.save();
     ctx.translate(-camX, -camY);
 
-    // visible world rectangle
     const vx0 = Math.max(0, camX), vy0 = Math.max(0, camY);
     const vx1 = Math.min(map.pw, camX + cw), vy1 = Math.min(map.ph, camY + ch);
     const vw = vx1 - vx0, vh = vy1 - vy0;
@@ -305,7 +378,7 @@ RPG.Game = class {
       this.blit(map.ground, vx0, vy0, vw, vh);
     }
 
-    this.drawPortal(this.exitPortal, this.zoneIndex < RPG.ZONES.length - 1 && (!this.boss || this.boss.state === 'dead') ? '#4ec9ff' : '#b23bff');
+    this.drawPortal(this.exitPortal, this.exitOpen() ? '#4ec9ff' : (this.zoneIndex === RPG.ZONES.length - 1 ? '#b23bff' : '#ff4d4d'));
     if (this.entryPortal) this.drawPortal(this.entryPortal, '#7bff8a');
     for (const h of this.pickups) h.draw(ctx);
 
@@ -327,7 +400,7 @@ RPG.Game = class {
     for (const f of this.fx) f.draw(ctx);
     ctx.restore();
 
-    // darken edges slightly in the cursed lands
+    // the Archive is lit from below: darken the edges
     if (this.zone.id === 'cursed') {
       const g = ctx.createRadialGradient(cw / 2, ch / 2, ch * 0.35, cw / 2, ch / 2, ch * 0.9);
       g.addColorStop(0, 'rgba(20,0,0,0)');
@@ -335,6 +408,8 @@ RPG.Game = class {
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, cw, ch);
     }
+
+    this.story.draw(ctx, cw, ch);
   }
 
   blit(img, x, y, w, h) {

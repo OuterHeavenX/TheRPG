@@ -15,6 +15,34 @@
       clearTimeout(this._bt);
       this._bt = setTimeout(() => b.classList.add('hidden'), 3200);
     },
+    location(title, sub) {
+      const b = $('location');
+      $('location-title').textContent = title;
+      $('location-sub').textContent = sub || '';
+      b.classList.remove('hidden');
+      b.style.animation = 'none';
+      void b.offsetWidth;
+      b.style.animation = '';
+      clearTimeout(this._lt);
+      this._lt = setTimeout(() => b.classList.add('hidden'), 4200);
+    },
+    titleCard(on) { $('titlecard').classList.toggle('hidden', !on); },
+    setObjective(text) { $('objective-text').textContent = text || ''; },
+    showDialog(on, speaker, text, unseen) {
+      const d = $('dialog');
+      d.classList.toggle('hidden', !on);
+      if (!on) return;
+      $('dlg-speaker').textContent = speaker || '';
+      $('dlg-speaker').classList.toggle('hidden', !speaker);
+      $('dlg-speaker').classList.toggle('unseen', !!unseen);
+      $('dlg-text').textContent = text || '';
+    },
+    dialogText(text) { $('dlg-text').textContent = text; },
+    skipProgress(p) {
+      const s = $('skip');
+      s.classList.toggle('hidden', p <= 0);
+      $('skip-fill').style.width = Math.round(p * 100) + '%';
+    },
     showBoss(boss) {
       this.boss = boss;
       $('boss-bar').classList.toggle('hidden', !boss);
@@ -26,9 +54,10 @@
       $('hp-text').textContent = Math.ceil(p.hp) + ' / ' + p.maxHp;
       $('xp-fill').style.width = (100 * p.xp / p.xpNeeded()) + '%';
       $('xp-text').textContent = p.xp + ' / ' + p.xpNeeded();
-      $('level-text').textContent = 'Lv ' + p.level;
+      $('level-text').textContent = 'KAEL · Lv ' + p.level;
       $('zone-text').textContent = game.zone.name;
       $('kills-text').textContent = p.kills + ' kills';
+      $('hud').classList.toggle('dimmed', game.story.active);
       if (this.boss) {
         $('boss-fill').style.width = (100 * this.boss.hp / this.boss.maxHp) + '%';
         if (this.boss.remove || this.boss.state === 'dead') {
@@ -46,8 +75,22 @@
       this.showScreen('gameover');
     },
     showVictory(p) {
-      $('victory-text').innerHTML = 'The Demon Lord has fallen!<br>Level ' + p.level + ' · ' + p.kills + ' kills';
+      $('victory-text').innerHTML = 'The Archivist is silent. The Vein is not.<br>Level ' + p.level + ' · ' + p.kills + ' kills';
       this.showScreen('victory');
+    },
+    renderJournal(game) {
+      const list = $('journal-list');
+      list.innerHTML = '';
+      let n = 0;
+      for (const [id, text] of RPG.JOURNAL) {
+        if (!game.flags[id]) continue;
+        const li = document.createElement('li');
+        li.textContent = text;
+        list.appendChild(li);
+        n++;
+      }
+      $('journal-objective').textContent = game.objective || '';
+      $('journal-empty').classList.toggle('hidden', n > 0);
     },
   };
 
@@ -64,31 +107,39 @@
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape') { togglePause(); e.preventDefault(); return; }
     if (keymap[e.code]) { game.input[keymap[e.code]] = true; e.preventDefault(); }
-    if (attackKeys.has(e.code)) { if (!e.repeat) game.input.attackPressed = true; e.preventDefault(); }
+    if (attackKeys.has(e.code)) {
+      if (game.story.active) { if (!e.repeat) game.story.advance(); game.input.action = true; }
+      else if (!e.repeat) game.input.attackPressed = true;
+      e.preventDefault();
+    }
     RPG.Audio.init(); RPG.Audio.resume();
   });
   window.addEventListener('keyup', (e) => {
     if (keymap[e.code]) { game.input[keymap[e.code]] = false; e.preventDefault(); }
+    if (attackKeys.has(e.code)) game.input.action = false;
   });
   window.addEventListener('blur', () => { for (const k in game.input) game.input[k] = false; });
   canvas.addEventListener('mousedown', (e) => {
+    RPG.Audio.init(); RPG.Audio.resume();
     if (!game.running || game.paused) return;
-    // face the click, then attack
+    if (game.story.active) { game.story.advance(); game.input.action = true; return; }
     const p = game.player;
     const wx = e.clientX / game.scale, wy = e.clientY / game.scale;
     const cx = canvas.width / 2, cy = canvas.height / 2;
-    if (p.state === 'idle' || p.state === 'attack') {
+    if (p.state === 'idle') {
       const dx = wx - cx, dy = wy - cy;
-      if (Math.abs(dx) + Math.abs(dy) > 6 && p.state === 'idle') p.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 2 : 3) : (dy < 0 ? 1 : 0);
+      if (Math.abs(dx) + Math.abs(dy) > 6) p.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 2 : 3) : (dy < 0 ? 1 : 0);
     }
     game.input.attackPressed = true;
-    RPG.Audio.init(); RPG.Audio.resume();
   });
+  window.addEventListener('mouseup', () => { game.input.action = false; });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  $('dialog').addEventListener('mousedown', (e) => { e.preventDefault(); game.story.advance(); game.input.action = true; });
 
   function togglePause() {
     if (!game.running || game.gameOver) return;
     game.paused = !game.paused;
+    if (game.paused) ui.renderJournal(game);
     ui.showScreen(game.paused ? 'pause' : null);
   }
 
@@ -102,9 +153,13 @@
   $('btn-continue').onclick = () => start(RPG.Game.loadSave());
   $('btn-resume').onclick = () => togglePause();
   $('btn-retry').onclick = () => { ui.showScreen(null); game.retry(); };
-  $('btn-again').onclick = () => { ui.showScreen(null); game.loadZone(game.zoneIndex, 'entry'); };
+  $('btn-again').onclick = () => { ui.showScreen(null); game.loadZone(game.zoneIndex, 'entry', true); ui.banner(game.zone.name, 'The Vein is waking. Keep exploring.'); };
   for (const id of ['btn-quit', 'btn-quit2', 'btn-quit3']) {
-    $(id).onclick = () => { game.running = false; game.paused = false; ui.showHud(false); ui.showBoss(null); showTitle(); };
+    $(id).onclick = () => {
+      game.running = false; game.paused = false;
+      game.story.active = false; game.story.target.black = 0; game.story.fx.black = 0; game.story.target.letterbox = 0;
+      ui.showDialog(false); ui.titleCard(false); ui.showHud(false); ui.showBoss(null); showTitle();
+    };
   }
 
   function showTitle() {
@@ -113,6 +168,8 @@
     $('btn-continue').classList.toggle('hidden', !save);
     if (save) $('btn-continue').textContent = 'Continue (Lv ' + save.level + ')';
   }
+
+  RPG.Touch.install(game, ui, togglePause);
 
   // ---------------- loading + loop
   RPG.Assets.preloadAll();
