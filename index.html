@@ -76,12 +76,65 @@
   <div id="loading"><div id="loading-fill"></div><span id="loading-text">Loading…</span></div>
 </div>
 
-<div id="pause" class="screen hidden">
-  <h1>Journal</h1>
-  <p class="sub"><b>Objective</b> · <span id="journal-objective"></span></p>
-  <ul id="journal-list"></ul>
-  <p id="journal-empty" class="sub hidden">Nothing remembered yet.</p>
-  <div class="menu"><button id="btn-resume">Resume</button><button id="btn-quit">Quit to Title</button></div>
+<div id="pause" class="screen hidden" aria-label="Game menu">
+  <div class="pause-shell">
+    <aside class="pause-nav">
+      <div class="pause-brand">VEILBOUND<span>The waking Vein</span></div>
+      <nav id="pause-tabs" aria-label="Menu sections">
+        <button class="pause-tab active" data-tab="status">Status</button>
+        <button class="pause-tab" data-tab="equipment">Equipment</button>
+        <button class="pause-tab" data-tab="axiom">Axiom</button>
+        <button class="pause-tab" data-tab="items">Items</button>
+        <button class="pause-tab" data-tab="memories">Memories</button>
+        <button class="pause-tab" data-tab="map">Map</button>
+        <button class="pause-tab" data-tab="settings">Settings</button>
+      </nav>
+      <div class="pause-mark" aria-hidden="true">◇</div>
+    </aside>
+
+    <main class="pause-content">
+      <section id="pause-status" class="pause-view active">
+        <div class="hero-panel">
+          <div class="hero-copy"><h1>Kael</h1><p>Masked relic hunter</p></div>
+          <div class="hero-vitals">
+            <span id="pause-level">LV 1</span>
+            <div><b>HP</b> <span id="pause-hp">100 / 100</span></div>
+            <div class="pause-meter"><i id="pause-hp-fill"></i></div>
+            <div><b>Next</b> <span id="pause-next">0</span></div>
+            <div class="pause-meter xp"><i id="pause-xp-fill"></i></div>
+          </div>
+          <canvas id="pause-hero" width="256" height="320" aria-label="Kael"></canvas>
+        </div>
+        <div class="detail-panel">
+          <h2>Stats</h2>
+          <dl class="stat-list">
+            <div><dt>Attack</dt><dd id="pause-atk">12</dd></div>
+            <div><dt>Defense</dt><dd id="pause-def">10</dd></div>
+            <div><dt>Agility</dt><dd id="pause-agi">10</dd></div>
+            <div><dt>Resonance</dt><dd id="pause-res">Dormant</dd></div>
+          </dl>
+          <h2>Equipment</h2>
+          <div class="gear-row"><span>Weapon</span><b>Fractured Shardblade</b></div>
+          <div class="gear-row"><span>Relic</span><b>Axiom Gauntlet</b></div>
+          <div class="gear-row locked"><span>Sigil</span><b>Locked</b></div>
+        </div>
+      </section>
+
+      <section id="pause-simple" class="pause-view simple-view">
+        <header><p id="pause-kicker">Archive</p><h2 id="pause-view-title">Memories</h2></header>
+        <div id="pause-view-body"></div>
+      </section>
+    </main>
+
+    <footer class="pause-footer">
+      <div><span>Objective</span><strong id="journal-objective"></strong></div>
+      <div><span id="pause-zone">The Forest Path</span><strong id="pause-kills">0 kills</strong></div>
+      <button id="btn-resume">Esc&nbsp;&nbsp; Resume</button>
+      <button id="btn-quit">Quit to Title</button>
+    </footer>
+  </div>
+  <ul id="journal-list" class="hidden"></ul>
+  <p id="journal-empty" class="hidden">Nothing remembered yet.</p>
 </div>
 
 <div id="gameover" class="screen hidden">

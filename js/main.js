@@ -91,6 +91,45 @@
       }
       $('journal-objective').textContent = game.objective || '';
       $('journal-empty').classList.toggle('hidden', n > 0);
+      this.renderPause(game, 'status');
+    },
+    renderPause(game, tab) {
+      const p = game.player;
+      $('pause-level').textContent = 'LV ' + p.level;
+      $('pause-hp').textContent = Math.ceil(p.hp) + ' / ' + p.maxHp;
+      $('pause-hp-fill').style.width = (100 * p.hp / p.maxHp) + '%';
+      $('pause-next').textContent = Math.max(0, p.xpNeeded() - p.xp);
+      $('pause-xp-fill').style.width = (100 * p.xp / p.xpNeeded()) + '%';
+      $('pause-atk').textContent = p.dmg;
+      $('pause-def').textContent = 8 + p.level * 3;
+      $('pause-agi').textContent = Math.round(p.walkSpeed);
+      $('pause-res').textContent = p.level >= 5 ? 'Awakened' : 'Dormant';
+      $('pause-zone').textContent = game.zone.name;
+      $('pause-kills').textContent = p.kills + ' kills';
+      $('journal-objective').textContent = game.objective || '';
+      const hero = $('pause-hero'), ctx = hero.getContext('2d');
+      const heroImg = RPG.Assets.images['assets/characters/swordsman_lvl' + Math.min(p.level, 9) + '/idle.png'];
+      ctx.clearRect(0, 0, hero.width, hero.height);
+      ctx.imageSmoothingEnabled = false;
+      if (heroImg) ctx.drawImage(heroImg, 0, 0, 64, 64, 0, 16, 256, 256);
+      this.showPauseTab(game, tab || 'status');
+    },
+    showPauseTab(game, tab) {
+      for (const b of document.querySelectorAll('.pause-tab')) b.classList.toggle('active', b.dataset.tab === tab);
+      $('pause-status').classList.toggle('active', tab === 'status');
+      $('pause-simple').classList.toggle('active', tab !== 'status');
+      if (tab === 'status') return;
+      const titles = { equipment: ['Loadout', 'Equipment'], axiom: ['Bound relic', 'Axiom'], items: ['Field pack', 'Items'], memories: ['Recovered fragments', 'Memories'], map: ['Current region', 'Map'], settings: ['System', 'Settings'] };
+      const [kicker, title] = titles[tab]; $('pause-kicker').textContent = kicker; $('pause-view-title').textContent = title;
+      const body = $('pause-view-body');
+      if (tab === 'memories') {
+        const found = RPG.JOURNAL.filter(([id]) => game.flags[id]);
+        body.innerHTML = found.length ? '<div class="menu-list">' + found.map(([id, text]) => '<article><small>' + id.replace('.', ' / ') + '</small>' + text + '</article>').join('') + '</div>' : '<p>Nothing remembered yet.</p>';
+      } else if (tab === 'equipment') body.innerHTML = '<div class="menu-list"><article><small>Weapon</small>Fractured Shardblade</article><article><small>Relic</small>Axiom Gauntlet</article><article><small>Sigil</small>Locked</article></div>';
+      else if (tab === 'axiom') body.innerHTML = '<div class="menu-list"><article><small>Resonance</small>' + (game.player.level >= 5 ? 'Awakened — the stones have turned from green to blue.' : 'Dormant — something waits beneath the surface.') + '</article><article><small>Authority</small>Insufficient</article></div>';
+      else if (tab === 'items') body.innerHTML = '<div class="menu-list"><article><small>Recovery</small>Hearts are used immediately when collected.</article><article><small>Key items</small>The fractured relic · The Axiom</article></div>';
+      else if (tab === 'map') body.innerHTML = '<div class="menu-list"><article><small>Location</small>' + game.zone.name + '</article><article><small>Route</small>The Forest Path → Hollow March → The Sunken Archive</article></div>';
+      else body.innerHTML = '<div class="menu-list"><article><small>Controls</small>WASD / Arrows to move · Shift to run · Space / J to attack</article><article><small>Save</small>Progress is saved automatically.</article></div>';
     },
   };
 
@@ -152,6 +191,7 @@
   $('btn-new').onclick = () => start(null);
   $('btn-continue').onclick = () => start(RPG.Game.loadSave());
   $('btn-resume').onclick = () => togglePause();
+  for (const tab of document.querySelectorAll('.pause-tab')) tab.onclick = () => ui.showPauseTab(game, tab.dataset.tab);
   $('btn-retry').onclick = () => { ui.showScreen(null); game.retry(); };
   $('btn-again').onclick = () => { ui.showScreen(null); game.loadZone(game.zoneIndex, 'entry', true); ui.banner(game.zone.name, 'The Vein is waking. Keep exploring.'); };
   for (const id of ['btn-quit', 'btn-quit2', 'btn-quit3']) {
