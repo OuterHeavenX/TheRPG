@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TheRPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="bar-row">
+    <span class="label">HP</span>
+    <div class="bar hp"><div id="hp-fill" class="fill"></div><span id="hp-text" class="bar-text"></span></div>
+  </div>
+  <div class="bar-row">
+    <span class="label">XP</span>
+    <div class="bar xp"><div id="xp-fill" class="fill"></div><span id="xp-text" class="bar-text"></span></div>
+  </div>
+  <div class="stats"><span id="level-text">Lv 1</span> · <span id="zone-text"></span> · <span id="kills-text">0 kills</span></div>
+</div>
+
+<div id="boss-bar" class="hidden">
+  <div id="boss-name">Demon Lord</div>
+  <div class="bar boss"><div id="boss-fill" class="fill"></div></div>
+</div>
+
+<div id="banner" class="hidden"></div>
+
+<div id="title" class="screen">
+  <h1>TheRPG</h1>
+  <p class="sub">A top-down pixel adventure</p>
+  <div class="menu">
+    <button id="btn-new">New Game</button>
+    <button id="btn-continue" class="hidden">Continue</button>
+  </div>
+  <div class="controls">
+    <p><b>WASD / Arrows</b> move &nbsp; <b>Shift</b> run &nbsp; <b>Space / J / Click</b> attack &nbsp; <b>Esc</b> pause</p>
+    <p>Slay monsters to gain XP. Level up and your swordsman grows stronger — all the way to level 9 armor.</p>
+    <p>Cross the Glades, brave the Forest, and defeat the Demon Lord in the Cursed Lands.</p>
+  </div>
+  <div id="loading"><div id="loading-fill"></div><span id="loading-text">Loading…</span></div>
+</div>
+
+<div id="pause" class="screen hidden">
+  <h1>Paused</h1>
+  <div class="menu"><button id="btn-resume">Resume</button><button id="btn-quit">Quit to Title</button></div>
+</div>
+
+<div id="gameover" class="screen hidden">
+  <h1>You Died</h1>
+  <p class="sub" id="gameover-text"></p>
+  <div class="menu"><button id="btn-retry">Retry</button><button id="btn-quit2">Quit to Title</button></div>
+</div>
+
+<div id="victory" class="screen hidden">
+  <h1>Victory!</h1>
+  <p class="sub" id="victory-text"></p>
+  <div class="menu"><button id="btn-again">Keep Exploring</button><button id="btn-quit3">Quit to Title</button></div>
+</div>
+
+<script src="assets/sprites.js"></script>
+<script src="assets/maps/grassland/map.js"></script>
+<script src="assets/maps/forest/map.js"></script>
+<script src="assets/maps/cursed/map.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/map.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

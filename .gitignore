@@ -1,0 +1,24 @@
+# Original downloaded asset packs (zips + raw extractions) stay local.
+# The game only ships the PNG sprite sheets and tilesets under assets/.
+/demon enemies/
+/golblin enemies/
+/lizard enemies/
+/main character/
+/slime enemies/
+/tilesets/
+/vampires enemies/
+*.zip
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+__MACOSX/
+*.url
+COUPON.*
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.claude/
