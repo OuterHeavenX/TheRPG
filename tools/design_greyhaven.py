@@ -54,7 +54,7 @@ def sheet_prop(path, c0, r0, c1, r1):
     return out
 
 
-def scene_prop(tmx, layer_names, bbox=None, keep=None):
+def scene_prop(tmx, layer_names, bbox=None, keep=None, origin=None):
     """The named layers of a Tiled scene as a prop: a list of sub-layers (kept separate so
     windows sit on walls and a statue layer's gaps don't punch holes), re-based to (0, 0)."""
     layers, _ = T.load_tmx(tmx)
@@ -71,7 +71,7 @@ def scene_prop(tmx, layer_names, bbox=None, keep=None):
         if cells:
             subs.append(cells)
     allc = [p for c in subs for p in c]
-    mx, my = min(p[0] for p in allc), min(p[1] for p in allc)
+    mx, my = origin if origin else (min(p[0] for p in allc), min(p[1] for p in allc))
     return [{(x - mx, y - my): t for (x, y), t in c.items()} for c in subs]
 
 
@@ -236,9 +236,9 @@ def props():
     hl0 = dict(T.load_tmx(herb)[0])
     covered = {p for n, cells in hl0.items() if not n.lower().startswith('water') and n != 'water_lilis'
                for p, t in cells.items() if T.coverage(t) >= 0.97 and not has_water(t)}
-    P['pond_water'] = scene_prop(herb, ['water', 'Water_details', 'Water_details2', 'water_lilis'], bbox=(-13, -15, 2, -8),
-                                 keep=lambda p, t: p not in covered)
-    P['pond_shore'] = scene_prop(herb, ['ground_grass'], bbox=(-13, -16, 3, -8), keep=lambda p, t: t[1] != 61)
+    P['pond_water'] = scene_prop(herb, ['water', 'Water_details', 'Water_details2', 'water_lilis'], bbox=(-13, -16, 3, -8),
+                                 keep=lambda p, t: p not in covered, origin=(-13, -16))
+    P['pond_shore'] = scene_prop(herb, ['ground_grass'], bbox=(-13, -16, 3, -8), keep=lambda p, t: t[1] != 61, origin=(-13, -16))
     temple = os.path.join(TOWN, 'temple', 'Ruined_temple_exterior.tmx')
     P['temple'] = scene_prop(temple, ['House', 'House_platform', 'Columns', 'Statues', 'Bricks', 'Roof'])
     P['statue_l'] = scene_prop(temple, ['Statues'], bbox=(-9, -11, -5, -3), keep=lambda p, t: T.coverage(t) > 0)
@@ -390,7 +390,7 @@ def design():
     # -- the Clinic (the hut) and its pond, south-west
     m.place('over_house', P['hut'], 17, 37)
     META['doors'].append(dict(id='clinic', zone='clinic_int', label='The Clinic', cells=[(22, 45), (23, 45)]))
-    m.place('water', P['pond_water'], 8, 45)
+    m.place('water', P['pond_water'], 8, 44)
     m.place('shore', P['pond_shore'], 8, 44)
     for _ in range(160):
         x, y = rng.randrange(7, 33), rng.randrange(37, 52)
