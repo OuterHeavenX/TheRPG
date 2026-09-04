@@ -1,7 +1,7 @@
 """Scan assets/characters and assets/enemies sprite sheets and write assets/sprites.js + sprites.json.
 
 Every sheet is a grid of square frames (64px, or 128px for the demons) with one row per facing:
-row 0 = down, 1 = up, 2 = left, 3 = right.  Frame counts per row are detected by looking for
+(order differs per pack, see `rows` below).  Frame counts per row are detected by looking for
 non-empty cells, and a feet anchor is measured from the idle animation.
 
 Usage:  python tools/sprite_manifest.py
@@ -58,12 +58,13 @@ def scan():
         # Row holding each facing, indexed by game direction (0 down, 1 up, 2 left, 3 right).
         # The CraftPix swordsman packs are laid out front / side-right / side-left / back;
         # every enemy pack is front / back / left / right.
-        # The town-pack NPCs (32px, 4 rows) share the swordsman order; one- or two-row sheets
-        # have a single facing and reuse row 0 for every direction.
+        # The swordsman and town-pack sheets are laid out front / side-left / side-right / back
+        # (verified in play: Kael must face the way he walks); every enemy pack is
+        # front / back / left / right. One- or two-row sheets have a single facing.
         if key.startswith('npcs/'):
-            entry['rows'] = [0, 3, 2, 1] if idle['rows'] == 4 else [0, 0, 0, 0]
+            entry['rows'] = [0, 3, 1, 2] if idle['rows'] == 4 else [0, 0, 0, 0]
         else:
-            entry['rows'] = [0, 3, 2, 1] if key.startswith('characters/') else [0, 1, 2, 3]
+            entry['rows'] = [0, 3, 1, 2] if key.startswith('characters/') else [0, 1, 2, 3]
         man[key] = entry
         print('%-32s %s' % (key, ' '.join(a for a in entry if a not in ('anchor', 'bbox'))))
     return man

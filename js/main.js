@@ -52,8 +52,9 @@
       const p = game.player;
       $('hp-fill').style.width = (100 * p.hp / p.maxHp) + '%';
       $('hp-text').textContent = Math.ceil(p.hp) + ' / ' + p.maxHp;
-      $('xp-fill').style.width = (100 * p.xp / p.xpNeeded()) + '%';
-      $('xp-text').textContent = p.xp + ' / ' + p.xpNeeded();
+      const maxed = p.level >= RPG.MAX_LEVEL;
+      $('xp-fill').style.width = (maxed ? 100 : 100 * p.xp / p.xpNeeded()) + '%';
+      $('xp-text').textContent = maxed ? 'MAX' : p.xp + ' / ' + p.xpNeeded();
       $('level-text').textContent = 'KAEL · Lv ' + p.level;
       $('zone-text').textContent = game.room ? (game.map.label || game.zone.name) : game.zone.name;
       $('kills-text').textContent = p.kills + ' kills';

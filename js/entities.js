@@ -91,6 +91,8 @@ RPG.Entity = class {
 };
 
 // ---------------------------------------------------------------- Player
+RPG.MAX_LEVEL = 9;
+
 RPG.Player = class extends RPG.Entity {
   constructor(level, xp) {
     super(new RPG.SpriteSet('characters/swordsman_lvl1'), 0, 0);
@@ -115,17 +117,21 @@ RPG.Player = class extends RPG.Entity {
     this.attackAnim = this.set.has('attack') ? 'attack' : 'attack_normal';
   }
 
-  xpNeeded() { return Math.round(25 * Math.pow(this.level, 1.6)); }
+  // Level 9 is the end of the road and it is meant to be a long one: 80 * L^2.5 XP per level
+  // (80, 452, 1247, 2560, 4472, 7056, 10373, 14482 -> about 40,000 XP in total).
+  xpNeeded() { return this.level >= RPG.MAX_LEVEL ? Infinity : Math.round(80 * Math.pow(this.level, 2.5)); }
 
   gainXp(n, game) {
+    if (this.level >= RPG.MAX_LEVEL) return;
     this.xp += n;
-    while (this.xp >= this.xpNeeded()) {
+    while (this.level < RPG.MAX_LEVEL && this.xp >= this.xpNeeded()) {
       this.xp -= this.xpNeeded();
       this.level++;
       this.applyLevel();
       this.hp = this.maxHp;
       game.onLevelUp();
     }
+    if (this.level >= RPG.MAX_LEVEL) this.xp = 0;
   }
 
   heal(n) { this.hp = Math.min(this.maxHp, this.hp + n); }

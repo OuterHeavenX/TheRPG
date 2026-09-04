@@ -82,7 +82,8 @@ RPG.Game = class {
 
   // ------------------------------------------------------------ lifecycle
   newGame(save) {
-    this.player = new RPG.Player(save ? save.level : 1, save ? save.xp : 0);
+    const lvl = save ? Math.max(1, Math.min(RPG.MAX_LEVEL, save.level || 1)) : 1;
+    this.player = new RPG.Player(lvl, save && lvl < RPG.MAX_LEVEL ? save.xp || 0 : 0);
     this.player.kills = save ? save.kills || 0 : 0;
     this.zoneIndex = save ? Math.min(save.zone || 0, RPG.ZONES.length - 1) : 0;
     this.bossDefeated = !!(save && save.bossDefeated);

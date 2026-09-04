@@ -46,7 +46,9 @@ which in canon is a spider-like guardian machine.
 - **Touch**: drag anywhere on the left half of the screen to move (floating joystick),
   the sword button attacks, RUN toggles running, the menu button opens the Journal
 
-Progress (level, XP, zone) is saved automatically in the browser.
+Progress (level, XP, zone) is saved automatically in the browser. Level 9 is the cap and it is
+a long climb: each level costs 80 × level^2.5 XP (about 40,000 XP in all), so the level-9 armor
+is something you earn over the whole journey rather than by the second zone.
 
 Run locally:
 
@@ -122,7 +124,7 @@ python tools/sprite_manifest.py
 ```
 
 Sprite sheets are one row per facing. The swordsman and the town NPC packs are laid out
-down / right / left / up, the enemy packs down / up / left / right; the manifest records the
+down / left / right / up, the enemy packs down / up / left / right; the manifest records the
 row order per sheet so the game never has to guess.
 
 ## Art credits and license
