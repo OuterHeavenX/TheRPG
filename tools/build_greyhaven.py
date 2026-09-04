@@ -262,11 +262,32 @@ def build_town():
             if name in skip:
                 continue
             kept = stamp_filter(sid, name, cells, background, frozenset(wet))
+            if sid == 'home':      # the yard stops where Market Row begins
+                kept = {p: t for p, t in kept.items() if p[1] + oy < MARKET_OY - 10}
+            if sid == 'market':    # the north wall's off-scene continuations at both corners
+                kept = {p: t for p, t in kept.items() if not ((p[0] <= -9 or p[0] >= 11) and p[1] <= -4)}
             if kept:
                 scene_layers.append((sid + '/' + name, {(x + ox, y + oy): t for (x, y), t in kept.items()}))
+    # Market Row is a crop of a larger street: its east and west sides are open cobbles. Let
+    # the square wear away into packed earth instead of ending in a straight line.
+    mx0, mx1, my0, my1 = MARKET_OX - 10, MARKET_OX + 12, MARKET_OY - 10, MARKET_OY + 5
+    apron = set()
+    for y in range(my0, my1 + 1):
+        for x in list(range(mx0 - 3, mx0)) + list(range(mx1 + 1, mx1 + 4)):
+            apron.add((x, y))
+    apron = organic(apron | {(x, y) for x in range(mx0 - 3, mx1 + 4) for y in (my1 + 1, my1 + 2)}, rng, erode=1)
+    yard |= apron
     yard -= wet_town
     layers.append(('yards', dirt_autotile(yard)))
     layers.extend(scene_layers)
+    loose = {}
+    WALLS_STREET = os.path.join(TOWN, 'market', 'Walls_street.png')
+    frag = [i for i in range(330, 378) if 0.15 < T.coverage((WALLS_STREET, i, 0, None)) < 0.85]
+    for (x, y) in apron:
+        near = min(abs(x - mx0), abs(x - mx1), abs(y - my1))
+        if rng.random() < (0.55 if near <= 1 else 0.2):
+            loose[(x, y)] = tile(rng.choice(frag), WALLS_STREET)
+    layers.append(('cobble_loose', loose))
     # water is drawn beneath the ground image, so the town's own grass must not cover a pond
     for name, cells in layers:
         if name in ('base', 'grass_detail', 'spots'):
