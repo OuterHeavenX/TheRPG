@@ -373,14 +373,27 @@ window.RPG = window.RPG || {};
         }
       }
       if (f.glitch > 0.01) {
-        const n = Math.floor(f.glitch * 18);
-        const seed = Math.floor(this.time * 14);
-        for (let i = 0; i < n; i++) {
-          const r = this.rand(seed * 31 + i * 7);
-          const bw = 6 + r * 40, bh = 3 + this.rand(seed + i * 13) * 14;
-          const bx = this.rand(seed * 3 + i) * w, by = this.rand(seed * 5 + i * 11) * h;
-          ctx.fillStyle = this.rand(seed + i) > 0.5 ? 'rgba(15,15,20,' + f.glitch + ')' : 'rgba(120,120,130,' + f.glitch * 0.8 + ')';
-          ctx.fillRect(Math.round(bx), Math.round(by), Math.round(bw), Math.round(bh));
+        // video tearing: thin horizontal slices of the frame shoved sideways, with a red/cyan
+        // fringe, plus a few dark specks. Never opaque blocks, so it reads as interference
+        // rather than missing tiles.
+        const seed = Math.floor(this.time * 12);
+        const n = Math.floor(2 + f.glitch * 9);
+        const src = ctx.canvas;
+        for (let i = 0; i < n && src.width > 0 && src.height > 0; i++) {
+          const y = Math.floor(this.rand(seed * 17 + i * 3) * h);
+          const sh = 1 + Math.floor(this.rand(seed + i * 7) * 4 * f.glitch);
+          const dx = Math.round((this.rand(seed * 5 + i) - 0.5) * 30 * f.glitch);
+          if (!dx) continue;
+          ctx.drawImage(src, 0, y, w, sh, dx, y, w, sh);
+          ctx.globalAlpha = 0.25 * f.glitch;
+          ctx.fillStyle = this.rand(seed + i * 11) > 0.5 ? '#ff3b5c' : '#4fd6c8';
+          ctx.fillRect(0, y, w, 1);
+          ctx.globalAlpha = 1;
+        }
+        const specks = Math.floor(f.glitch * 40);
+        ctx.fillStyle = 'rgba(8,8,12,' + (0.5 * f.glitch) + ')';
+        for (let i = 0; i < specks; i++) {
+          ctx.fillRect(Math.floor(this.rand(seed * 3 + i * 13) * w), Math.floor(this.rand(seed * 9 + i * 5) * h), 2 + Math.floor(this.rand(i) * 3), 1);
         }
       }
       if (f.static > 0.01) {

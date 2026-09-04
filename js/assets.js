@@ -18,7 +18,7 @@ RPG.Assets = {
       this.pending++;
       im.onload = () => { this.loaded++; };
       im.onerror = () => { this.loaded++; console.warn('Missing image:', src); };
-      im.src = src;
+      im.src = src + (RPG.ASSET_VERSION ? (src.includes('?') ? '&' : '?') + 'v=' + RPG.ASSET_VERSION : '');
       this.images[src] = im;
     }
     return im;

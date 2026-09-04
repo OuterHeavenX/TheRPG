@@ -284,6 +284,29 @@ def bake_town(preview_dir):
         preview(out_dir, solid, meta, os.path.join(preview_dir, 'collision_greyhaven.png'))
 
 
+RUG_MIN_CELLS = 14
+
+
+def clusters(cells):
+    seen, out = set(), []
+    for start in cells:
+        if start in seen:
+            continue
+        group, stack = [], [start]
+        seen.add(start)
+        while stack:
+            c = stack.pop()
+            group.append(c)
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    n = (c[0] + dx, c[1] + dy)
+                    if n in cells and n not in seen:
+                        seen.add(n)
+                        stack.append(n)
+        out.append(group)
+    return out
+
+
 def bake_interior(zone, cfg, preview_dir):
     layers, _ = T.load_tmx(cfg['tmx'])
     minx, miny, maxx, maxy = T.extent(layers)
@@ -306,6 +329,12 @@ def bake_interior(zone, cfg, preview_dir):
             continue
         floor_part = {p: t for p, t in cells.items() if t[:2] in floor_keys or 'crack' in os.path.basename(t[0]).lower()}
         wall_part = {p: t for p, t in cells.items() if p not in floor_part}
+        # rugs: a big connected patch in a furniture layer is something you walk on, not into
+        # (wall layers are exempt: their walls form one big patch too)
+        for group in clusters(wall_part) if not n.startswith('wall') else []:
+            if len(group) >= RUG_MIN_CELLS:
+                for c in group:
+                    floor_part[c] = wall_part.pop(c)
         if floor_part:
             split.append((name + '#floor', floor_part))
             ground.append(name + '#floor')
