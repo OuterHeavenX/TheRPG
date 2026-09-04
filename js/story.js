@@ -81,9 +81,18 @@ window.RPG = window.RPG || {};
       { titleCard: false, fx: { black: 1 }, wait: 1.0 },
     ] },
 
+    // ------------------------------------------------ TheRPG — arriving in Greyhaven (title drop, canon scene 4b)
+    greyhaven: { id: 'town.arrive', title: 'Greyhaven', beats: [
+      { fx: { letterbox: 1, black: 0.35 }, cue: 'rest', wait: 1.2 },
+      { titleCard: true, wait: 3.4 },
+      { titleCard: false, fx: { black: 0 }, wait: 0.6 },
+      { location: 'GREYHAVEN', sub: 'Hollow March · built around the corpse of a lift', objective: 'Find Mira at the Hunter Hall, north of the plaza', wait: 0.4 },
+      { fx: { letterbox: 0 }, wait: 0.6 },
+    ] },
+
     // ------------------------------------------------ SCENE 5 — Hunter Hall (verbatim)
     hall: { id: 'prologue.hall', title: 'Hunter Hall', beats: [
-      { location: 'GREYHAVEN — HUNTER HALL', sub: 'Mira kept the hall. She expected him back in two weeks.', fx: { black: 0.92, letterbox: 1 }, cue: 'blip', wait: 2.2 },
+      { location: 'GREYHAVEN — HUNTER HALL', sub: 'Mira kept the hall. She expected him back in two weeks.', fx: { letterbox: 1 }, cue: 'blip', wait: 2.0 },
       { say: [S('KAEL', 'Good to see you too.'),
               S('MIRA', 'You said two weeks.'),
               S('KAEL', 'It became complicated.'),
@@ -109,7 +118,10 @@ window.RPG = window.RPG || {};
       { say: [S('MIRA', 'Please tell me relics normally do that.'), S('KAEL', 'They do not.')] },
       { fx: { symbol: 0.5, black: 0.85 }, wait: 0.6 },
       { fx: { shake: 1, black: 0.95, symbol: 0, veins: 1 }, cue: 'bell', wait: 1.5 },
-      { fx: { black: 1, veins: 1, letterbox: 1 }, objective: "Follow the bell's memory", wait: 1.0 },
+      { fx: { black: 0.7, veins: 1, letterbox: 1 }, objective: "Follow the bell's memory — east, past the second field", wait: 1.0 },
+      { fx: { black: 0, veins: 0.3, letterbox: 0 }, wait: 0.8 },
+      { say: [S('MIRA', 'Go. Whatever that was, it is not finished.'), S('KAEL', 'Keep the hearth lit.')] },
+      { fx: { veins: 0 }, wait: 0.2 },
     ] },
 
     // ------------------------------------------------ TheRPG — arrival in the Hollow March
@@ -166,6 +178,7 @@ window.RPG = window.RPG || {};
     ['prologue.void', 'Two voices in the void. "Without her face, he will never find the door."'],
     ['prologue.vision', 'Five images in the rain: a burning town, a silent bell, a glass cage, a machine, a headstone.'],
     ['prologue.creature', 'The corrupted thing on the forest path said it had a name.'],
+    ['town.arrive', 'Greyhaven at dusk: lit windows, a dead bell tower, and the Old Lift Station the town grew up around.'],
     ['prologue.hall', 'Mira kept the Hunter Hall. You were four months late. She read the injuries before you admitted them.'],
     ['prologue.toll', 'The Greyhaven bell rang with no clapper in it. Three times. The relic broke. Her voice said: follow.'],
     ['march.arrive', 'The Hollow March: pale grass over buried ruins. Past the second field, a sealed door nobody has opened.'],

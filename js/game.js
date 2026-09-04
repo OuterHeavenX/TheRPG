@@ -1,4 +1,4 @@
-// Core game: zones, spawning, combat resolution, story triggers, camera, rendering, HUD.
+// Core game: zones (wilds, town, interiors), spawning, combat, story triggers, camera, rendering.
 window.RPG = window.RPG || {};
 
 const E = (key, name, hp, dmg, speed, xp, extra) => Object.assign(
@@ -31,20 +31,28 @@ RPG.ENEMIES = {
   demon3: E('demon3', 'The Archivist', 2600, 70, 58, 1200, { reach: 32, aggro: 400, atkCd: 0.9, big: true, boss: true }),
 };
 
-// The journey: the forest road home, the Hollow March east of Greyhaven, the Sunken Archive.
+// The journey west to east: the forest road home, Greyhaven, the Hollow March, the Sunken Archive.
 RPG.ZONES = [
   { id: 'forest', name: 'The Forest Path', recommended: 1, count: 10, respawn: 7,
     roster: ['slime1', 'slime1', 'slime2', 'slime2', 'slime3', 'slime_monster1', 'goblin1', 'goblin1', 'goblin2'],
-    guardian: 'corrupted', arrive: null, leave: ['title', 'hall', 'toll'] },
+    guardian: 'corrupted', arrive: null },
+  { id: 'greyhaven', name: 'Greyhaven', recommended: 1, count: 0, respawn: 0, roster: [], town: true,
+    arrive: 'greyhaven', exitNeeds: 'prologue.toll', exitLocked: 'The road east waits. Mira first — the Hunter Hall is north of the plaza.' },
   { id: 'grassland', name: 'Hollow March', recommended: 3, count: 12, respawn: 6,
     roster: ['goblin3', 'orc1', 'orc1', 'orc2', 'orc3', 'lizardman1', 'lizardman1', 'lizardman2', 'slime_monster2', 'slime_monster3'],
-    arrive: 'march', leave: null },
+    arrive: 'march' },
   { id: 'cursed', name: 'The Sunken Archive', recommended: 6, count: 12, respawn: 6, boss: 'demon3',
     roster: ['lizardman3', 'vampire1', 'vampire1', 'vampire2', 'vampire2', 'vampire3', 'demon1', 'demon1', 'demon2'],
-    arrive: 'descent', leave: null },
+    arrive: 'descent' },
 ];
+// Rooms entered through doors in a town. Their arrival scenes fire once.
+RPG.ROOMS = {
+  hall_int: { arrive: ['hall', 'toll'] },
+  clinic_int: {},
+  lift_int: {},
+};
 
-RPG.SAVE_KEY = 'therpg-save-v2';
+RPG.SAVE_KEY = 'therpg-save-v3';
 
 RPG.Game = class {
   constructor(canvas, ui) {
@@ -86,7 +94,6 @@ RPG.Game = class {
     this.ui.showHud(true);
     this.ui.setObjective(this.objective);
     if (!save) {
-      // A new journey opens on the memory and the void, with the world hidden behind the veil.
       this.story.target.black = 1;
       this.story.fx.black = 1;
       this.loadZone(0, 'entry', true);
@@ -96,45 +103,81 @@ RPG.Game = class {
     }
   }
 
-  loadZone(index, at, silent) {
-    this.zoneIndex = index;
-    this.zone = RPG.ZONES[index];
-    this.map = new RPG.GameMap(this.zone.id);
+  // Shared setup for wild zones, the town and interiors.
+  enterMap(id, spawnTile, dir) {
+    this.map = new RPG.GameMap(id);
     this.enemies = [];
+    this.npcs = [];
     this.pickups = [];
     this.fx = [];
     this.boss = null;
     this.guardian = null;
-    this.respawnTimer = this.zone.respawn;
     const p = this.player;
-    const spawn = this.map.tileCenter(at === 'exit' ? this.map.exit : this.map.entry);
+    const spawn = this.map.tileCenter(spawnTile);
     p.x = spawn[0]; p.y = spawn[1];
-    p.state = 'idle'; p.setAnim('idle'); p.kx = p.ky = 0;
-    p.dir = at === 'exit' ? 2 : 3;
+    p.state = 'idle'; p.setAnim('idle'); p.kx = p.ky = 0; p.dir = dir;
     this.portalLock = true;
-    this.exitPortal = this.map.tileCenter(this.map.exit);
-    this.entryPortal = index > 0 ? this.map.tileCenter(this.map.entry) : null;
+    for (const n of this.map.npcs) this.npcs.push(new RPG.Npc(Object.assign({ wander: n.id === 'speaker' || n.id === 'wren' }, n)));
+    this.ui.showBoss(null);
+  }
+
+  loadZone(index, at, silent) {
+    this.zoneIndex = index;
+    this.zone = RPG.ZONES[index];
+    this.room = null;
+    this.enterMap(this.zone.id, at === 'exit' ? RPG.MAPS[this.zone.id].exit : RPG.MAPS[this.zone.id].entry, at === 'exit' ? 2 : 3);
+    const map = this.map;
+    this.respawnTimer = this.zone.respawn;
+    this.exitPortal = map.tileCenter(map.exit);
+    this.entryPortal = index > 0 ? map.tileCenter(map.entry) : null;
     for (let i = 0; i < this.zone.count; i++) this.spawnEnemy(true);
 
     if (this.zone.boss && !this.bossDefeated) {
-      const near = this.map.nearestWalkable(this.exitPortal[0] - 40, this.exitPortal[1]);
+      const near = map.nearestWalkable(this.exitPortal[0] - 40, this.exitPortal[1]);
       this.boss = new RPG.Enemy(RPG.ENEMIES[this.zone.boss], near[0], near[1]);
       this.boss.dir = 2;
       this.enemies.push(this.boss);
     }
     if (this.zone.guardian && !this.flags['prologue.creature']) {
-      const near = this.map.nearestWalkable(this.exitPortal[0] - 36, this.exitPortal[1] + 8);
+      const near = map.nearestWalkable(this.exitPortal[0] - 36, this.exitPortal[1] + 8);
       this.guardian = new RPG.Enemy(RPG.ENEMIES[this.zone.guardian], near[0], near[1]);
       this.guardian.dir = 2;
       this.enemies.push(this.guardian);
     }
     this.ui.showBoss(this.boss);
     this.save();
-
     if (silent) return;
     const arrive = this.zone.arrive && !this.flags[RPG.SCENES[this.zone.arrive].id] ? RPG.SCENES[this.zone.arrive] : null;
     if (arrive) this.story.play(arrive);
-    else this.ui.banner(this.zone.name, 'Recommended level ' + this.zone.recommended);
+    else this.ui.banner(this.zone.name, this.zone.town ? 'Talk to people with Space / the sword button' : 'Recommended level ' + this.zone.recommended);
+  }
+
+  enterRoom(id) {
+    RPG.Audio.interact();
+    this.room = Object.assign({ id }, RPG.ROOMS[id] || {});
+    this.enterMap(id, RPG.MAPS[id].entry, 3);
+    this.exitPortal = null;
+    this.entryPortal = this.map.tileCenter(this.map.entry);
+    this.ui.location(RPG.MAPS[id].label || id, '');
+    const scenes = (this.room.arrive || []).map((k) => RPG.SCENES[k]).filter((s) => !this.flags[s.id]);
+    if (scenes.length) this.story.play(scenes);
+  }
+
+  leaveRoom() {
+    RPG.Audio.interact();
+    const back = this.map.exitTo;
+    const town = RPG.ZONES.findIndex((z) => z.id === back.zone);
+    this.zone = RPG.ZONES[town];
+    this.zoneIndex = town;
+    this.room = null;
+    this.enterMap(back.zone, back.cell, 0);
+    // step just below the door so it doesn't retrigger
+    this.player.y += 10;
+    const map = this.map;
+    this.respawnTimer = 1e9;
+    this.exitPortal = map.tileCenter(map.exit);
+    this.entryPortal = town > 0 ? map.tileCenter(map.entry) : null;
+    this.save();
   }
 
   spawnEnemy(initial) {
@@ -168,6 +211,35 @@ RPG.Game = class {
 
   static loadSave() {
     try { return JSON.parse(localStorage.getItem(RPG.SAVE_KEY)); } catch (e) { return null; }
+  }
+
+  // ------------------------------------------------------------ talking & examining
+  interact() {
+    const p = this.player;
+    let best = null, bd = 30;
+    for (const n of this.npcs) {
+      const d = Math.hypot(n.x - p.x, n.y - p.y);
+      if (d < bd) { bd = d; best = { kind: 'npc', obj: n, id: n.id }; }
+    }
+    for (const o of this.map.objects) {
+      const d = Math.hypot(o.x - p.x, o.y - p.y);
+      if (d < o.radius && d < bd + 8) { bd = d; best = { kind: 'object', obj: o, id: o.id }; }
+    }
+    if (!best) return false;
+    const talk = RPG.TALK[best.id];
+    if (!talk) return false;
+    if (best.kind === 'npc') { best.obj.faceToward(p.x, p.y); p.faceToward(best.obj.x, best.obj.y); }
+    const flag = 'talk.' + best.id;
+    let lines = talk.first;
+    if (this.bossDefeated && talk.after) lines = this.flags[flag + '.after'] ? talk.again || talk.after : talk.after;
+    else if (this.flags[flag] && talk.again) lines = talk.again;
+    const beats = [];
+    if (talk.resonance) beats.push({ fx: { flash: 0.35 }, cue: 'resonance', wait: 0.2 });
+    beats.push({ say: lines });
+    if (talk.rest) beats.push({ then: () => { p.hp = p.maxHp; this.flags['rested'] = true; RPG.Audio.rest(); this.save(); this.fx.push(new RPG.FloatText(p.x, p.y - 22, 'RESTED', '#7bff8a')); }, wait: 0.2 });
+    if (talk.heal) beats.push({ then: () => { p.hp = p.maxHp; RPG.Audio.pickup(); this.fx.push(new RPG.FloatText(p.x, p.y - 22, 'HEALED', '#7bff8a')); }, wait: 0.2 });
+    this.story.play({ id: flag + (this.bossDefeated && talk.after ? '.after' : ''), beats });
+    return true;
   }
 
   // ------------------------------------------------------------ combat callbacks
@@ -248,22 +320,18 @@ RPG.Game = class {
     this.ui.showVictory(this.player);
   }
 
-  // Portal gates: the forest is held by the Vein-Corrupted, the Archive by the Archivist.
+  // Portal gates: the forest is held by the Vein-Corrupted, Greyhaven by the first toll,
+  // the Archive by the Archivist.
   exitOpen() {
-    if (this.zoneIndex >= RPG.ZONES.length - 1) return false;
+    if (this.room || this.zoneIndex >= RPG.ZONES.length - 1) return false;
     if (this.guardian && this.guardian.state !== 'dead') return false;
+    if (this.zone.exitNeeds && !this.flags[this.zone.exitNeeds]) return false;
     return true;
   }
 
   goToZone(index, at) {
-    const leave = at === 'entry' ? this.zone.leave : null;
-    const scenes = leave ? leave.map((k) => RPG.SCENES[k]).filter((s) => !this.flags[s.id]) : [];
-    if (scenes.length) {
-      this.story.play(scenes, () => this.loadZone(index, at, false));
-    } else {
-      RPG.Audio.portal();
-      this.loadZone(index, at, false);
-    }
+    RPG.Audio.portal();
+    this.loadZone(index, at, false);
   }
 
   // ------------------------------------------------------------ update
@@ -271,6 +339,7 @@ RPG.Game = class {
     if (!this.running || this.paused) return;
     if (this.story.active) {
       this.story.update(dt, this.input.action);
+      this.input.attackPressed = false;
       this.shake = Math.max(0, this.shake - dt);
       this.ui.updateHud(this);
       return;
@@ -278,10 +347,16 @@ RPG.Game = class {
     this.story.update(dt, false);
     this.time += dt;
     const p = this.player, map = this.map;
+    const peaceful = !!(this.zone.town || this.room);
+
+    if (peaceful && this.input.attackPressed) {
+      this.input.attackPressed = false;
+      if (!this.interact()) RPG.Audio.blip();
+    }
     p.update(dt, this);
+    for (const n of this.npcs) n.update(dt, this);
 
     for (const e of this.enemies) e.update(dt, this);
-    // gentle separation so enemies don't stack on one pixel
     for (let i = 0; i < this.enemies.length; i++) {
       const a = this.enemies[i];
       if (a.state === 'dead') continue;
@@ -299,15 +374,15 @@ RPG.Game = class {
     }
     this.enemies = this.enemies.filter((e) => !e.remove);
 
-    // respawns
-    const alive = this.enemies.filter((e) => e.state !== 'dead' && !e.boss && !e.def.special).length;
-    this.respawnTimer -= dt;
-    if (this.respawnTimer <= 0) {
-      this.respawnTimer = this.zone.respawn;
-      if (alive < this.zone.count) this.spawnEnemy(false);
+    if (!peaceful) {
+      const alive = this.enemies.filter((e) => e.state !== 'dead' && !e.boss && !e.def.special).length;
+      this.respawnTimer -= dt;
+      if (this.respawnTimer <= 0) {
+        this.respawnTimer = this.zone.respawn;
+        if (alive < this.zone.count) this.spawnEnemy(false);
+      }
     }
 
-    // pickups
     for (const h of this.pickups) {
       h.update(dt);
       if (p.state !== 'dead' && Math.hypot(h.x - p.x, h.y - p.y) < 11) {
@@ -319,13 +394,12 @@ RPG.Game = class {
       }
     }
     this.pickups = this.pickups.filter((h) => !h.remove);
-
     for (const f of this.fx) f.update(dt);
     this.fx = this.fx.filter((f) => !f.remove);
 
     // story triggers
-    if (p.state !== 'dead') {
-      if (this.zoneIndex === 0 && !this.flags['prologue.vision'] && p.x > map.pw * 0.45) {
+    if (p.state !== 'dead' && !this.room) {
+      if (this.zone.id === 'forest' && !this.flags['prologue.vision'] && p.x > map.pw * 0.45) {
         this.story.play(RPG.SCENES.vision);
       }
       if (this.boss && this.boss.state !== 'dead' && !this.flags['archive.archivist'] &&
@@ -334,14 +408,20 @@ RPG.Game = class {
       }
     }
 
-    // portals
+    // doors, portals
     if (p.state !== 'dead' && !this.story.active) {
-      const nearExit = Math.hypot(p.x - this.exitPortal[0], p.y - this.exitPortal[1]) < 10;
+      const tx = Math.floor(p.x / map.tile), ty = Math.floor(p.y / map.tile);
+      const nearExit = this.exitPortal && Math.hypot(p.x - this.exitPortal[0], p.y - this.exitPortal[1]) < 10;
       const nearEntry = this.entryPortal && Math.hypot(p.x - this.entryPortal[0], p.y - this.entryPortal[1]) < 10;
-      if (this.portalLock && !nearExit && !nearEntry) this.portalLock = false;
+      const door = map.doors.find((d) => d.cells.some((c) => c[0] === tx && c[1] === ty));
+      if (this.portalLock && !nearExit && !nearEntry && !door) this.portalLock = false;
       if (!this.portalLock) {
-        if (nearExit && this.exitOpen()) this.goToZone(this.zoneIndex + 1, 'entry');
-        else if (nearEntry) this.goToZone(this.zoneIndex - 1, 'exit');
+        if (this.room && nearEntry) this.leaveRoom();
+        else if (door) this.enterRoom(door.zone);
+        else if (nearExit) {
+          if (this.exitOpen()) this.goToZone(this.zoneIndex + 1, 'entry');
+          else if (this.zone.exitLocked && !this.lockedHint) { this.lockedHint = true; this.ui.banner('The way is barred', this.zone.exitLocked); setTimeout(() => { this.lockedHint = false; }, 4000); }
+        } else if (nearEntry && !this.room) this.goToZone(this.zoneIndex - 1, 'exit');
       }
     }
 
@@ -352,7 +432,7 @@ RPG.Game = class {
   // ------------------------------------------------------------ render
   render() {
     const ctx = this.ctx, cw = this.canvas.width, ch = this.canvas.height;
-    ctx.fillStyle = '#0b0b12';
+    ctx.fillStyle = this.room ? '#120c0c' : '#0b0b12';
     ctx.fillRect(0, 0, cw, ch);
     if (!this.running) return;
     const map = this.map, p = this.player;
@@ -368,7 +448,6 @@ RPG.Game = class {
 
     ctx.save();
     ctx.translate(-camX, -camY);
-
     const vx0 = Math.max(0, camX), vy0 = Math.max(0, camY);
     const vx1 = Math.min(map.pw, camX + cw), vy1 = Math.min(map.ph, camY + ch);
     const vw = vx1 - vx0, vh = vy1 - vy0;
@@ -378,12 +457,12 @@ RPG.Game = class {
       this.blit(map.ground, vx0, vy0, vw, vh);
     }
 
-    this.drawPortal(this.exitPortal, this.exitOpen() ? '#4ec9ff' : (this.zoneIndex === RPG.ZONES.length - 1 ? '#b23bff' : '#ff4d4d'));
+    if (this.exitPortal) this.drawPortal(this.exitPortal, this.exitOpen() ? '#4ec9ff' : (this.zoneIndex === RPG.ZONES.length - 1 ? '#b23bff' : '#ff4d4d'));
     if (this.entryPortal) this.drawPortal(this.entryPortal, '#7bff8a');
+    for (const d of map.doors) this.drawDoor(d);
     for (const h of this.pickups) h.draw(ctx);
 
-    // entities interleaved with the over layer, row by row (simple y-sorting)
-    const ents = this.enemies.concat([p]).sort((a, b) => a.y - b.y);
+    const ents = this.enemies.concat(this.npcs, [p]).sort((a, b) => a.y - b.y);
     const t = map.tile;
     const r0 = Math.max(0, Math.floor(vy0 / t)), r1 = Math.min(map.h - 1, Math.floor((vy1 - 1) / t));
     let ei = 0;
@@ -397,24 +476,47 @@ RPG.Game = class {
     }
     while (ei < ents.length) ents[ei++].draw(ctx);
 
+    // talk prompt
+    if ((this.zone.town || this.room) && !this.story.active) {
+      const near = this.npcs.find((n) => Math.hypot(n.x - p.x, n.y - p.y) < 30) ||
+        map.objects.find((o) => Math.hypot(o.x - p.x, o.y - p.y) < o.radius);
+      if (near) {
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        const label = near.talk ? near.talk.name : (RPG.TALK[near.id] || { name: near.id }).name;
+        const y = Math.round(near.y - (near.set ? near.set.anchor[1] - near.set.def.bbox[1] : 14) - 8);
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(Math.round(near.x) - label.length * 3.5 - 3, y - 8, label.length * 7 + 6, 11);
+        ctx.fillStyle = '#4fd6c8';
+        ctx.fillText(label, Math.round(near.x), y);
+      }
+    }
+
     for (const f of this.fx) f.draw(ctx);
     ctx.restore();
 
-    // the Archive is lit from below: darken the edges
-    if (this.zone.id === 'cursed') {
+    if (this.zone.id === 'cursed' && !this.room) {
       const g = ctx.createRadialGradient(cw / 2, ch / 2, ch * 0.35, cw / 2, ch / 2, ch * 0.9);
       g.addColorStop(0, 'rgba(20,0,0,0)');
       g.addColorStop(1, 'rgba(20,0,0,0.45)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, cw, ch);
     }
-
     this.story.draw(ctx, cw, ch);
   }
 
   blit(img, x, y, w, h) {
     if (!img.complete || !img.naturalWidth) return;
     this.ctx.drawImage(img, x, y, w, h, x, y, w, h);
+  }
+
+  drawDoor(d) {
+    const ctx = this.ctx, t = this.map.tile;
+    const pulse = 0.4 + Math.sin(this.time * 3) * 0.25;
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#ffd866';
+    for (const [x, y] of d.cells) ctx.fillRect(x * t + 2, y * t + t - 3, t - 4, 2);
+    ctx.globalAlpha = 1;
   }
 
   drawPortal(pos, color) {

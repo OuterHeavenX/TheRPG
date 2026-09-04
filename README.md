@@ -58,15 +58,34 @@ then visit http://localhost:8000. Opening `index.html` directly also works.
 
 ## Zones
 
-| Zone | Enemies | Recommended level |
+| Zone | What's there | Recommended level |
 | --- | --- | --- |
 | The Forest Path | March Husks, Scavengers, the **Vein-Corrupted** (guards the road) | 1 |
+| **Greyhaven** | the town: Hunter Hall, the Clinic, the Old Lift Station, five townsfolk | — |
 | Hollow March | Scavenger Chief, Hollow Brutes, Vein Sentries, Husk Brutes | 3 |
 | The Sunken Archive | Sentry Lord, Archive Wardens, Vein Horrors, **The Archivist** (boss) | 6 |
 
 Walk into the blue portal at the east edge of a zone to move on; the green portal takes
 you back. A red portal is locked: the forest road opens once the Vein-Corrupted is dead,
-and the Archive ends with the Archivist.
+Greyhaven's east road opens after the first toll, and the Archive ends with the Archivist.
+
+## Greyhaven
+
+Greyhaven is assembled by `tools/build_greyhaven.py` from three CraftPix location packs
+(the main character's home, the herbalist's hut, the ruined temple): each pack's authored
+exterior scene is stamped onto a grass base and joined by auto-tiled dirt roads, a plaza and
+the town well; trees, bushes and rocks are lifted from the home scene and scattered along the
+edges. All three buildings are enterable (their interiors are baked as separate rooms):
+
+- **Hunter Hall** (the home) — Mira, and the hearth where Kael can rest to heal and save.
+- **The Clinic** (the herbalist's hut) — the healer, who mends Kael for free.
+- **Old Lift Station** (the ruined temple) — the dormant transit node the town grew up around,
+  with its Under-Room below.
+
+Stand on the glowing doorstep to enter; step back onto the doormat inside to leave. Walk up to
+a person or a marked object and press attack (or tap the sword) to talk or examine. The
+townsfolk are the herbalist, cultist and explorer sprites from those packs, standing in for
+Mira, the Speaker, Wren, the Archivist and the keepers of the Lift Station.
 
 ## Project layout
 
@@ -77,16 +96,20 @@ js/audio.js         tiny procedural sound effects
 js/assets.js        image loading + SpriteSet (sheet = 4 rows: down/up/left/right)
 js/map.js           baked map loader + tile collision
 js/entities.js      Player, Enemy AI, pickups, floating text
+js/town.js          Greyhaven townsfolk (NPC entity) and their dialogue
 js/story.js         VEILBOUND scenes, journal entries, cutscene runner + screen effects
 js/game.js          zones, enemy roster/stats, spawning, combat, story triggers, rendering
 js/touch.js         mobile touch controls (joystick + buttons)
 js/main.js          input, UI wiring, main loop
 assets/characters/  swordsman_lvl1..9 sprite sheets
 assets/enemies/     slime, goblin, orc, lizardman, vampire, demon sheets (3 tiers each)
-assets/tilesets/    craftpix tilesets + the original Tiled (.tmx) maps
+assets/tilesets/    craftpix tilesets + the original Tiled (.tmx) maps (town/ = the three location packs)
+assets/npcs/        townsfolk sprite sheets (32px frames)
 assets/maps/        baked maps (water frames, ground, over layer, collision) per zone
 assets/sprites.js   sprite manifest (frame size, frames per row, feet anchor)
-tools/bake_maps.py  Tiled .tmx -> baked PNG layers + collision grid + map.js
+tools/tmxlib.py     shared Tiled reader / baker
+tools/bake_maps.py  Tiled .tmx -> baked PNG layers + collision grid + map.js (wild zones)
+tools/build_greyhaven.py  composes and bakes Greyhaven + its interiors
 tools/sprite_manifest.py  scans the sprite sheets -> assets/sprites.js
 ```
 
@@ -94,8 +117,13 @@ To rebuild the generated data after editing a map or adding sprites (needs Pytho
 
 ```bash
 python tools/bake_maps.py
+python tools/build_greyhaven.py
 python tools/sprite_manifest.py
 ```
+
+Sprite sheets are one row per facing. The swordsman and the town NPC packs are laid out
+down / right / left / up, the enemy packs down / up / left / right; the manifest records the
+row order per sheet so the game never has to guess.
 
 ## Art credits and license
 

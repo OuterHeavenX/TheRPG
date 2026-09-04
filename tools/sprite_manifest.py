@@ -13,16 +13,28 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, 'assets')
 
 
+def frame_size(key, im):
+    if key.startswith('npcs/'):
+        if im.height % 48 == 0 and im.height < 128:
+            return 48
+        return 32
+    return 128 if im.height >= 512 else 64
+
+
 def scan():
     man = {}
-    for d in sorted(glob.glob(os.path.join(ASSETS, 'characters', '*')) + glob.glob(os.path.join(ASSETS, 'enemies', '*'))):
+    for d in sorted(glob.glob(os.path.join(ASSETS, 'characters', '*')) + glob.glob(os.path.join(ASSETS, 'enemies', '*')) +
+                    glob.glob(os.path.join(ASSETS, 'npcs', '*'))):
         key = os.path.relpath(d, ASSETS).replace(os.sep, '/')
+        if not os.path.exists(os.path.join(d, 'idle.png')):
+            print('skipping %s (no idle.png sheet)' % key)
+            continue
         entry = {}
         for f in sorted(os.listdir(d)):
             if not f.lower().endswith('.png'):
                 continue
             im = Image.open(os.path.join(d, f)).convert('RGBA')
-            fs = 128 if im.height >= 512 else 64
+            fs = frame_size(key, im)
             rows, cols = im.height // fs, im.width // fs
             counts = []
             for r in range(rows):
@@ -43,6 +55,15 @@ def scan():
                 l, t, r, b = min(l, bb[0]), min(t, bb[1]), max(r, bb[2]), max(b, bb[3])
         entry['anchor'] = [round((l + r) / 2), b - 3]
         entry['bbox'] = [l, t, r, b]
+        # Row holding each facing, indexed by game direction (0 down, 1 up, 2 left, 3 right).
+        # The CraftPix swordsman packs are laid out front / side-right / side-left / back;
+        # every enemy pack is front / back / left / right.
+        # The town-pack NPCs (32px, 4 rows) share the swordsman order; one- or two-row sheets
+        # have a single facing and reuse row 0 for every direction.
+        if key.startswith('npcs/'):
+            entry['rows'] = [0, 3, 2, 1] if idle['rows'] == 4 else [0, 0, 0, 0]
+        else:
+            entry['rows'] = [0, 3, 2, 1] if key.startswith('characters/') else [0, 1, 2, 3]
         man[key] = entry
         print('%-32s %s' % (key, ' '.join(a for a in entry if a not in ('anchor', 'bbox'))))
     return man

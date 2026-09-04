@@ -55,7 +55,7 @@
       $('xp-fill').style.width = (100 * p.xp / p.xpNeeded()) + '%';
       $('xp-text').textContent = p.xp + ' / ' + p.xpNeeded();
       $('level-text').textContent = 'KAEL · Lv ' + p.level;
-      $('zone-text').textContent = game.zone.name;
+      $('zone-text').textContent = game.room ? (game.map.label || game.zone.name) : game.zone.name;
       $('kills-text').textContent = p.kills + ' kills';
       $('hud').classList.toggle('dimmed', game.story.active);
       if (this.boss) {

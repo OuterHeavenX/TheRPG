@@ -48,6 +48,7 @@ RPG.SpriteSet = class {
     this.def = RPG.SPRITES[key];
     if (!this.def) throw new Error('Unknown sprite set ' + key);
     this.anchor = this.def.anchor || [32, 44];
+    this.rows = this.def.rows || [0, 1, 2, 3]; // sheet row for each facing: down, up, left, right
     this.imgs = {};
   }
 
@@ -59,7 +60,7 @@ RPG.SpriteSet = class {
   frames(anim, dir) {
     const a = this.def[anim];
     if (!a) return 1;
-    return a.frames[dir] || a.frames[0] || 1;
+    return a.frames[this.rows[dir]] || a.frames[0] || 1;
   }
 
   image(anim) {
@@ -74,7 +75,7 @@ RPG.SpriteSet = class {
     const fs = a.fs;
     const n = this.frames(anim, dir);
     frame = Math.max(0, Math.min(frame, n - 1));
-    ctx.drawImage(img, frame * fs, dir * fs, fs, fs,
+    ctx.drawImage(img, frame * fs, this.rows[dir] * fs, fs, fs,
       Math.round(x - this.anchor[0]), Math.round(y - this.anchor[1]), fs, fs);
   }
 };
