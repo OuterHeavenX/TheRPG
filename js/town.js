@@ -89,6 +89,36 @@ window.RPG = window.RPG || {};
       ],
       again: [S('KEEPER', "Careful round the lift. Children climb it. It's dead, but it's dead heavy.")], // canon
     },
+    // ---- Market Row (market square pack). Smith and tapster lines are canon interactables.
+    smith: {
+      name: 'SMITH',
+      first: [
+        S('SMITH', 'Every dead relic on my bench twitched this morning. Ninety years of nothing, then a twitch.'), // canon
+        S('KAEL', 'Then keep it off my bench.'),                                                    // canon (adapted)
+        S('SMITH', "Your blade's fractured too. Conductor's split clean through the middle."),         // canon
+        S('SMITH', "Bring me a whole conductor and I'll make it sing again. Won't be cheap."),        // canon
+      ],
+      again: [S('SMITH', "No conductor, no repair. I don't work miracles. Only metal.")],            // canon
+    },
+    tapster: {
+      name: 'TAPSTER',
+      first: [
+        S('TAPSTER', "Relic hunter. You've got the walk for it."),                                    // canon
+        S('TAPSTER', "Room's yours for nothing tonight. Don't argue with me."),                      // canon
+        S('KAEL', 'I am not staying.'),
+        S('TAPSTER', 'Nobody is, lately. Everyone carrying a blade goes east eventually.'),          // canon (adapted)
+      ],
+      again: [S('TAPSTER', 'Drink first. The March is not going anywhere.')],
+    },
+    baker: {
+      name: 'BAKER',
+      first: [
+        S('BAKER', 'Take a loaf. You look like the bell woke you and never let you back to sleep.'),
+        S('BAKER', 'It woke all of us. Three times, and nothing in the tower to ring it.'),
+      ],
+      again: [S('BAKER', 'Another loaf? Go on. Eat it before the March does.')],
+      heal: true,
+    },
     wren: {
       name: 'WREN',
       first: [
@@ -97,6 +127,20 @@ window.RPG = window.RPG || {};
       ],
       again: [S('WREN', 'Dead since before my mother. Whole town grew up around the corpse of it.')], // canon
     },
+    relicseller: {
+      name: 'RELIC SELLER',
+      first: [
+        S('RELIC SELLER', 'Curios. Fragments. Nothing that works, which is the only reason I am allowed to sell them.'),
+        S('RELIC SELLER', 'Yours works. Do not let the Speaker see it too closely.'),
+      ],
+      again: [S('RELIC SELLER', 'Half this town runs on things nobody can read.')],                  // canon (adapted)
+    },
+    lutist: { name: 'LUTE PLAYER', first: [S('', 'He is playing a melody in a minor key. You almost know it.')], again: [S('', 'The same melody. You almost know it.')] },
+    flutist: { name: 'FLUTIST', first: [S('', 'She keeps time with the lute and does not look up from the pipe.')], again: [S('', 'She does not look up.')] },
+    townsfolk1: { name: 'TOWNSMAN', first: [S('TOWNSMAN', 'The lamps flickered last night. All of them. Same moment.')], again: [S('TOWNSMAN', 'Same moment. Every lamp.')] },
+    townsfolk2: { name: 'ELDER', first: [S('ELDER', 'The lift shook. Ninety years of nothing and it picks today to move.')], again: [S('ELDER', 'Dead heavy, that lift. Keep the children off it.')] },
+    townsfolk3: { name: 'TOWNSWOMAN', first: [S('TOWNSWOMAN', 'They say the ground opened past the second field.'), S('TOWNSWOMAN', 'You look like a man who already knows that.')], again: [S('TOWNSWOMAN', 'East. Everyone with a blade goes east.')] },
+    townsfolk4: { name: 'GIRL', first: [S('GIRL', 'Are you going to the lift? Do not climb it. Everyone says do not climb it.')], again: [S('GIRL', 'It is dead. But it is dead heavy.')] },
     liftdoor: {
       name: 'OLD LIFT STATION',
       first: [

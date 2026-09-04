@@ -35,7 +35,10 @@ STAMPS = [
     ('home', os.path.join(TOWN, 'home', 'Exterior.tmx'), 44, 10, ('Birds', 'cat')),
     ('herb', os.path.join(TOWN, 'herbalist', 'Exterior.tmx'), 16, 38, ('birds',)),
     ('temple', os.path.join(TOWN, 'temple', 'Ruined_temple_exterior.tmx'), 70, 16, ('Discoverers',)),
+    # Market Row: the market square pack, its street openings lined up with the Hunter Hall road
+    ('market', os.path.join(TOWN, 'market', 'Market_square.tmx'), 40, 28, ('NPC_street',)),
 ]
+MARKET_OX, MARKET_OY = 40, 28
 # door approach tiles (town coords) -> interior zone
 DOORS = [
     dict(id='hall', zone='hall_int', label='Hunter Hall', cells=[(40, 13), (41, 13)]),
@@ -43,18 +46,32 @@ DOORS = [
     dict(id='lift', zone='lift_int', label='Old Lift Station', cells=[(69, 13), (70, 13)]),
 ]
 ROADS_H = [(0, 83, 34, 36)]                       # x0, x1, y0, y1 inclusive
-ROADS_V = [(14, 15, 25, 33), (40, 41, 14, 33), (69, 70, 14, 33)]
-PLAZA = (34, 48, 28, 32)
-WELL_AT = (44, 29)
+ROADS_V = [(14, 15, 25, 33), (40, 41, 14, 17), (69, 70, 14, 33)]
+PLAZA = (55, 59, 27, 31)          # packed dirt around the well, east of the market
+WELL_AT = (56, 28)
 ENTRY, EXIT = (1, 35), (82, 35)
+def M(lx, ly):
+    return (MARKET_OX + lx, MARKET_OY + ly)   # market-scene local tile -> town tile
+
 NPCS = [
-    dict(id='speaker', sprite='npcs/speaker', tile=(46, 32), dir=0),
+    dict(id='speaker', sprite='npcs/speaker', tile=M(-4, 0), dir=3, wander=True),
     dict(id='archivist', sprite='npcs/archivist', tile=(74, 14), dir=0),
     dict(id='keeper1', sprite='npcs/keeper1', tile=(64, 14), dir=3),
     dict(id='keeper2', sprite='npcs/keeper2', tile=(76, 11), dir=2),
-    dict(id='wren', sprite='npcs/wren', tile=(20, 34), dir=0),
+    # Market Row stalls (positions follow the pack's own scene) and its people
+    dict(id='baker', sprite='npcs/baker', tile=M(8, -6), dir=0),
+    dict(id='smith', sprite='npcs/smith', tile=M(5, -1), dir=0),
+    dict(id='tapster', sprite='npcs/tapster', tile=M(4, 3), dir=0),
+    dict(id='lutist', sprite='npcs/lutist', tile=M(0, -1), dir=0),
+    dict(id='flutist', sprite='npcs/flutist', tile=M(2, -1), dir=0),
+    dict(id='wren', sprite='npcs/wren', tile=M(-7, -5), dir=0),
+    dict(id='relicseller', sprite='npcs/relicseller', tile=M(9, 1), dir=0),
+    dict(id='townsfolk1', sprite='npcs/townsfolk1', tile=M(-5, -4), dir=0, wander=True),
+    dict(id='townsfolk2', sprite='npcs/townsfolk2', tile=M(6, -4), dir=2, wander=True),
+    dict(id='townsfolk3', sprite='npcs/townsfolk3', tile=M(-3, 3), dir=3, wander=True),
+    dict(id='townsfolk4', sprite='npcs/townsfolk4', tile=(20, 33), dir=0, wander=True),
 ]
-OBJECTS = [dict(id='liftdoor', tile=(70, 12), radius=22), dict(id='well', tile=(45, 31), radius=20)]
+OBJECTS = [dict(id='liftdoor', tile=(70, 12), radius=22), dict(id='well', tile=(57, 30), radius=20)]
 
 INTERIORS = {
     'hall_int': dict(tmx=os.path.join(TOWN, 'home', 'Interior1.tmx'), label='Hunter Hall',
@@ -75,7 +92,7 @@ def tile(lid, path=EXT):
 def is_over(name):
     n = name.split('/', 1)[-1].lower()
     return n.startswith(('objects', 'trees', 'bush', 'house', 'fence', 'windows', 'roof', 'statues',
-                         'columns', 'bricks', 'grass_top', 'well'))  # 'objects_scatter' too
+                         'columns', 'bricks', 'grass_top', 'well', 'walls', 'boxes', 'tent'))
 
 
 def is_water(name):
@@ -141,6 +158,8 @@ def build_town():
     for x in range(x0, x1 + 1):
         for y in range(y0, y1 + 1):
             mask.add((x, y))
+    market = next(l for l in layers if l[0] == 'market/street')[1]
+    mask = {c for c in mask if c not in market}     # the square keeps its cobbles
     layers.append(('road', dirt_autotile(mask)))
 
     # a few cobble plates on the packed dirt of the plaza, plus the well
@@ -205,7 +224,7 @@ def scatter_objects(layers, road_mask):
     for name, cells in layers:
         if name.count('/') and is_over(name):
             occupied.update(cells)
-        if name.startswith(('herb/', 'home/', 'temple/')):
+        if name.startswith(('herb/', 'home/', 'temple/', 'market/')):
             occupied.update(cells)      # keep the authored scenes untouched
     for d in DOORS:
         occupied.update(d['cells'])
@@ -254,7 +273,7 @@ def bake_town(preview_dir):
     npcs = []
     for n in NPCS:
         t = nearest(comp, *n['tile'])
-        npcs.append(dict(id=n['id'], sprite=n['sprite'], x=t[0] * 16 + 8, y=t[1] * 16 + 12, dir=n['dir']))
+        npcs.append(dict(id=n['id'], sprite=n['sprite'], x=t[0] * 16 + 8, y=t[1] * 16 + 12, dir=n['dir'], wander=bool(n.get('wander'))))
     objects = [dict(id=o['id'], x=o['tile'][0] * 16 + 8, y=o['tile'][1] * 16 + 8, radius=o['radius']) for o in OBJECTS]
     doors = [dict(id=d['id'], zone=d['zone'], label=d['label'], cells=d['cells']) for d in DOORS]
     meta = dict(zone='greyhaven', kind='town', w=W, h=H, tile=16, waterFrames=6, solid=T.solid_string(solid),

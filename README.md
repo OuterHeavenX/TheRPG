@@ -63,7 +63,7 @@ then visit http://localhost:8000. Opening `index.html` directly also works.
 | Zone | What's there | Recommended level |
 | --- | --- | --- |
 | The Forest Path | March Husks, Scavengers, the **Vein-Corrupted** (guards the road) | 1 |
-| **Greyhaven** | the town: Hunter Hall, the Clinic, the Old Lift Station, five townsfolk | — |
+| **Greyhaven** | the town: Hunter Hall, the Clinic, the Old Lift Station, Market Row, fifteen townsfolk | — |
 | Hollow March | Scavenger Chief, Hollow Brutes, Vein Sentries, Husk Brutes | 3 |
 | The Sunken Archive | Sentry Lord, Archive Wardens, Vein Horrors, **The Archivist** (boss) | 6 |
 
@@ -73,8 +73,8 @@ Greyhaven's east road opens after the first toll, and the Archive ends with the 
 
 ## Greyhaven
 
-Greyhaven is assembled by `tools/build_greyhaven.py` from three CraftPix location packs
-(the main character's home, the herbalist's hut, the ruined temple): each pack's authored
+Greyhaven is assembled by `tools/build_greyhaven.py` from four CraftPix packs (the main
+character's home, the herbalist's hut, the ruined temple, the market square): each pack's authored
 exterior scene is stamped onto a grass base and joined by auto-tiled dirt roads, a plaza and
 the town well; trees, bushes and rocks are lifted from the home scene and scattered along the
 edges. All three buildings are enterable (their interiors are baked as separate rooms):
@@ -83,6 +83,9 @@ edges. All three buildings are enterable (their interiors are baked as separate 
 - **The Clinic** (the herbalist's hut) — the healer, who mends Kael for free.
 - **Old Lift Station** (the ruined temple) — the dormant transit node the town grew up around,
   with its Under-Room below.
+- **Market Row** (the market square pack) — the walled square below the Hunter Hall: a smith,
+  a tapster, a baker (free loaf heals you), Wren's fruit stall, a relic seller, two musicians
+  and townsfolk who wander the cobbles. The well stands just outside its east wall.
 
 Stand on the glowing doorstep to enter; step back onto the doormat inside to leave. Walk up to
 a person or a marked object and press attack (or tap the sword) to talk or examine. The

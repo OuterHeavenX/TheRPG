@@ -118,7 +118,7 @@ RPG.Game = class {
     p.x = spawn[0]; p.y = spawn[1];
     p.state = 'idle'; p.setAnim('idle'); p.kx = p.ky = 0; p.dir = dir;
     this.portalLock = true;
-    for (const n of this.map.npcs) this.npcs.push(new RPG.Npc(Object.assign({ wander: n.id === 'speaker' || n.id === 'wren' }, n)));
+    for (const n of this.map.npcs) this.npcs.push(new RPG.Npc(n));
     this.ui.showBoss(null);
   }
 
