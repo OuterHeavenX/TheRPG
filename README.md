@@ -73,24 +73,37 @@ Greyhaven's east road opens after the first toll, and the Archive ends with the 
 
 ## Greyhaven
 
-Greyhaven is assembled by `tools/build_greyhaven.py` from four CraftPix packs (the main
-character's home, the herbalist's hut, the ruined temple, the market square): each pack's authored
-exterior scene is stamped onto a grass base and joined by auto-tiled dirt roads, a plaza and
-the town well; trees, bushes and rocks are lifted from the home scene and scattered along the
-edges. All three buildings are enterable (their interiors are baked as separate rooms):
+Greyhaven is an authored map, laid out by `tools/design_greyhaven.py` and written out as
+`assets/tilesets/town/Greyhaven.tmx` so it can be opened and edited in
+[Tiled](https://www.mapeditor.org/). The layout: a west gate and a wandering main street; the
+walled, cobbled **Market Row** at the crossroads with the town well, stalls and musicians; the
+**Hunter Hall** in its fenced yard north of the square; **Wayfarer's Rest** (blue roof, the
+tapster, a bed to rest in) and the **Relic Workshop** (green roof, the smith) either side of
+the square; the **Clinic** (the herbalist's hut) with its pond and flower garden to the
+south-west; the **Archivist's House** (slate roof) to the south-east; the **Old Lift Station**
+on its clearing to the north-east; a memorial stone by the square; and a ring of forest.
 
-- **Hunter Hall** (the home) — Mira, and the hearth where Kael can rest to heal and save.
-- **The Clinic** (the herbalist's hut) — the healer, who mends Kael for free.
-- **Old Lift Station** (the ruined temple) — the dormant transit node the town grew up around,
-  with its Under-Room below.
-- **Market Row** (the market square pack) — the walled square below the Hunter Hall: a smith,
-  a tapster, a baker (free loaf heals you), Wren's fruit stall, a relic seller, two musicians
-  and townsfolk who wander the cobbles. The well stands just outside its east wall.
+Every building is enterable (six interiors). Stand on the glowing doorstep to go in, step back
+onto the doormat to leave. Walk up to a person or a marked object and press attack (or tap the
+sword) to talk or examine.
 
-Stand on the glowing doorstep to enter; step back onto the doormat inside to leave. Walk up to
-a person or a marked object and press attack (or tap the sword) to talk or examine. The
-townsfolk are the herbalist, cultist and explorer sprites from those packs, standing in for
-Mira, the Speaker, Wren, the Archivist and the keepers of the Lift Station.
+How it is drawn: one grass with tufts and darker patches; every street, lane, yard and clearing
+is a single dirt autotile with roughened edges; the square's cobbles wear into packed earth;
+buildings, stalls, tents, statues, the pond, trees, bushes and rocks are props lifted from the
+CraftPix packs (the three house colours are hue-shifted copies of one house). Doors, NPCs,
+examinable objects and the entry/exit live in the map's `meta` object layer.
+
+Editing the town in Tiled: open `Greyhaven.tmx`, change what you like (tile layers whose name
+starts with `over` draw above the player and block movement; `water` is water; everything
+else is ground), move or add objects in the `meta` layer (types `door`, `npc`, `object`,
+`entry`, `exit`), then bake it with:
+
+```bash
+python tools/design_greyhaven.py --from-tmx
+```
+
+Running the script without `--from-tmx` regenerates the map from the layout code and
+overwrites the `.tmx`.
 
 ## Project layout
 
@@ -114,7 +127,8 @@ assets/maps/        baked maps (water frames, ground, over layer, collision) per
 assets/sprites.js   sprite manifest (frame size, frames per row, feet anchor)
 tools/tmxlib.py     shared Tiled reader / baker
 tools/bake_maps.py  Tiled .tmx -> baked PNG layers + collision grid + map.js (wild zones)
-tools/build_greyhaven.py  composes and bakes Greyhaven + its interiors
+tools/design_greyhaven.py  the authored Greyhaven layout -> Greyhaven.tmx + baked maps + interiors
+tools/build_greyhaven.py  prop extraction and interior baking helpers used by the above
 tools/sprite_manifest.py  scans the sprite sheets -> assets/sprites.js
 ```
 
@@ -122,7 +136,7 @@ To rebuild the generated data after editing a map or adding sprites (needs Pytho
 
 ```bash
 python tools/bake_maps.py
-python tools/build_greyhaven.py
+python tools/design_greyhaven.py
 python tools/sprite_manifest.py
 ```
 

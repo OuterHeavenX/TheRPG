@@ -48,6 +48,9 @@ RPG.ZONES = [
 // Rooms entered through doors in a town. Their arrival scenes fire once.
 RPG.ROOMS = {
   hall_int: { arrive: ['hall', 'toll'] },
+  inn_int: {},
+  workshop_int: {},
+  archive_int: {},
   clinic_int: {},
   lift_int: {},
 };

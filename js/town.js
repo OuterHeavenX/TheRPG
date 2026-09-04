@@ -141,6 +141,30 @@ window.RPG = window.RPG || {};
     townsfolk2: { name: 'ELDER', first: [S('ELDER', 'The lift shook. Ninety years of nothing and it picks today to move.')], again: [S('ELDER', 'Dead heavy, that lift. Keep the children off it.')] },
     townsfolk3: { name: 'TOWNSWOMAN', first: [S('TOWNSWOMAN', 'They say the ground opened past the second field.'), S('TOWNSWOMAN', 'You look like a man who already knows that.')], again: [S('TOWNSWOMAN', 'East. Everyone with a blade goes east.')] },
     townsfolk4: { name: 'GIRL', first: [S('GIRL', 'Are you going to the lift? Do not climb it. Everyone says do not climb it.')], again: [S('GIRL', 'It is dead. But it is dead heavy.')] },
+    innbed: {
+      name: 'THE ROOM UPSTAIRS',
+      first: [S('', 'A narrow bed under the eaves. You sleep, and for once nothing rings.')],
+      again: [S('', 'You sleep. Nothing rings.')],
+      rest: true,
+    },
+    bench: {
+      name: 'THE BENCH',
+      first: [S('', 'Dead relics, laid out in rows. Every one of them is turned slightly toward the door, as if they moved in the night.')],
+      again: [S('', 'The relics on the bench are all turned toward the door.')],
+      resonance: true,
+    },
+    maps: {
+      name: 'THE MAPS',
+      first: [S('', 'Two surveys of the same approach east of the second field. Both stop at the same sealed door.'),
+              S('', 'In the margin, in a careful hand: the walls.')],
+      again: [S('', 'Both surveys stop at the same door.')],
+    },
+    memorial: {
+      name: 'THE MEMORIAL',
+      first: [S('', 'A weathered stone by the square. Names, most of them family names the town still uses.'),
+              S('', 'The dates are all the same year. The year of the Silence.')],
+      again: [S('', 'The dates are all the same year.')],
+    },
     liftdoor: {
       name: 'OLD LIFT STATION',
       first: [
