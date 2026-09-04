@@ -135,7 +135,7 @@ def render(layers, names, W, H, frame=0, ox=0, oy=0):
 
 
 def bake(out_dir, layers, W, H, water, over, ground_min=0.4, over_max=0.6, water_frames=6,
-         ox=0, oy=0, force_walkable=(), force_solid=(), bounds_solid=True):
+         ox=0, oy=0, force_walkable=(), force_solid=(), bounds_solid=True, base_layers=()):
     """Write water_N/ground/over PNGs and return (solid grid [y][x], largest component set)."""
     os.makedirs(out_dir, exist_ok=True)
     water, over = set(water), set(over)
@@ -147,15 +147,20 @@ def bake(out_dir, layers, W, H, water, over, ground_min=0.4, over_max=0.6, water
 
     gcov = [[0.0] * W for _ in range(H)]
     ocov = [[0.0] * W for _ in range(H)]
+    wcov = [[0.0] * W for _ in range(H)]   # water fill
+    scov = [[0.0] * W for _ in range(H)]   # scene ground (coasts, bridges) that may cover water
+    base_layers = set(base_layers)
     for name, cells in layers:
-        if name in water:
-            continue
-        tgt = ocov if name in over else gcov
+        tgt = wcov if name in water else ocov if name in over else gcov
         for (x, y), tile in cells.items():
             x, y = x - ox, y - oy
             if 0 <= x < W and 0 <= y < H:
-                tgt[y][x] = max(tgt[y][x], coverage(tile))
-    solid = [[not (gcov[y][x] >= ground_min and ocov[y][x] < over_max) for x in range(W)] for y in range(H)]
+                c = coverage(tile)
+                tgt[y][x] = max(tgt[y][x], c)
+                if tgt is gcov and name not in base_layers:
+                    scov[y][x] = max(scov[y][x], c)
+    solid = [[not (gcov[y][x] >= ground_min and ocov[y][x] < over_max) or (wcov[y][x] >= 0.9 and scov[y][x] < 0.5)
+              for x in range(W)] for y in range(H)]
     for (x, y) in force_walkable:
         solid[y][x] = False
     for (x, y) in force_solid:

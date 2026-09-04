@@ -31,13 +31,21 @@ PLATE_TOP, PLATE_MID, PLATE_BOT = [179, 180, 181, 182], [196, 197, 198, 199], [2
 WELL = [[582, 583], [599, 600], [616, 617]]
 
 # ---- where each scene's local (0,0) lands on the town grid
+# (id, tmx, ox, oy, skipped layers). Scenes are not copied wholesale: their own grass is
+# dropped so the town's grass runs under everything and the packs' different grass tones never
+# meet edge to edge (see stamp_filter).
 STAMPS = [
     ('home', os.path.join(TOWN, 'home', 'Exterior.tmx'), 44, 10, ('Birds', 'cat')),
-    ('herb', os.path.join(TOWN, 'herbalist', 'Exterior.tmx'), 16, 38, ('birds',)),
-    ('temple', os.path.join(TOWN, 'temple', 'Ruined_temple_exterior.tmx'), 70, 16, ('Discoverers',)),
+    ('herb', os.path.join(TOWN, 'herbalist', 'Exterior.tmx'), 16, 38, ('birds', 'ground_grass_top')),
+    ('temple', os.path.join(TOWN, 'temple', 'Ruined_temple_exterior.tmx'), 70, 16,
+     ('Discoverers', 'water', 'water_detailization', 'ground', 'spots', 'spots2', 'grass', 'grass_details', 'site')),
     # Market Row: the market square pack, its street openings lined up with the Hunter Hall road
     ('market', os.path.join(TOWN, 'market', 'Market_square.tmx'), 40, 28, ('NPC_street',)),
 ]
+# dirt yards laid with the shared autotile under scenes whose own ground was dropped
+YARDS = [(62, 79, 4, 20)]
+SPOT_IDS = [114, 134, 135, 155, 156, 90, 105, 106, 126, 127, 141, 162]   # ground_grass_details.png
+GROUND_DETAILS = os.path.join(TOWN, 'home', 'ground_grass_details.png')
 MARKET_OX, MARKET_OY = 40, 28
 # door approach tiles (town coords) -> interior zone
 DOORS = [
@@ -45,11 +53,13 @@ DOORS = [
     dict(id='clinic', zone='clinic_int', label='The Clinic', cells=[(14, 24), (15, 24)]),
     dict(id='lift', zone='lift_int', label='Old Lift Station', cells=[(69, 13), (70, 13)]),
 ]
-ROADS_H = [(0, 83, 34, 36)]                       # x0, x1, y0, y1 inclusive
-ROADS_V = [(14, 15, 25, 33), (40, 41, 14, 17), (69, 70, 14, 33)]
+import math
+def road_y(x):                                     # top row of the main road at column x
+    return 34 + int(round(1.3 * math.sin(x / 7.0) + 0.6 * math.sin(x / 3.1)))
+ROADS_V = [(14, 15, 25, 38), (40, 41, 14, 17), (69, 70, 14, 38)]
 PLAZA = (55, 59, 27, 31)          # packed dirt around the well, east of the market
 WELL_AT = (56, 28)
-ENTRY, EXIT = (1, 35), (82, 35)
+ENTRY, EXIT = (1, road_y(1) + 1), (82, road_y(82) + 1)
 def M(lx, ly):
     return (MARKET_OX + lx, MARKET_OY + ly)   # market-scene local tile -> town tile
 
@@ -100,6 +110,94 @@ def is_water(name):
     return 'water' in n
 
 
+_mean = {}
+
+
+def tile_mean(t):
+    key = t[:3]
+    if key not in _mean:
+        im = T.tile_image(t)
+        px = [p for p in im.getdata() if p[3] > 40]
+        n = max(1, len(px))
+        _mean[key] = (sum(p[0] for p in px) / n, sum(p[1] for p in px) / n, sum(p[2] for p in px) / n)
+    return _mean[key]
+
+
+def scene_background(sl, skip):
+    """Split a scene's flat fills from its features. Returns (drop, dirt): tile keys to drop, and
+    the cells of dirt fills (redrawn later with the shared autotile so their edges blend)."""
+    from collections import Counter
+    cnt = Counter()
+    where = {}
+    total = 0
+    for name, cells in sl:
+        if name in skip or is_over(name) or is_water(name):
+            continue
+        for p, t in cells.items():
+            total += 1
+            if T.coverage(t) >= 0.97:
+                cnt[t[:3]] += 1
+                where.setdefault(t[:3], []).append(p)
+    drop, dirt = set(), set()
+    fills = [k for k, n in cnt.items() if n >= max(20, total * 0.04)]
+    for k in fills:
+        r, g, b = tile_mean(k + (None,))
+        drop.add(k)
+        if not (g > r + 8 and g > b + 20):        # a dirt / sand fill
+            dirt.update(where[k])
+        else:                                     # a grass fill: drop its colour variants too
+            for key in cnt:
+                r2, g2, b2 = tile_mean(key + (None,))
+                if abs(r2 - r) + abs(g2 - g) + abs(b2 - b) < 60 and g2 >= r2:
+                    drop.add(key)
+    return drop, dirt
+
+
+def organic(mask, rng, erode=2):
+    """Erode a cell mask and roughen its border so authored rectangles read as clearings."""
+    def erode1(m):
+        return {c for c in m if all((c[0] + dx, c[1] + dy) in m for dx in (-1, 0, 1) for dy in (-1, 0, 1))}
+    core = set(mask)
+    for _ in range(erode):
+        core = erode1(core)
+    out = set(core)
+    rim = set(mask) - core
+    for _ in range(2):                      # grow back irregularly, twice
+        added = set()
+        for c in rim:
+            if c in out:
+                continue
+            near = sum(1 for dx in (-1, 0, 1) for dy in (-1, 0, 1) if (c[0] + dx, c[1] + dy) in out)
+            if near >= 2 and rng.random() < 0.55:
+                added.add(c)
+        out |= added
+    return out
+
+
+TUFT_LAYERS = ('spots', 'grass_detail', 'grass_top', 'small_flowers')
+
+
+def stamp_filter(sid, name, cells, background, wet=frozenset()):
+    """Keep buildings, objects, water and paths from a scene; drop its flat grass and tufts.
+    Anything sitting on a water cell is a shore and is always kept."""
+    n = name.lower()
+    if wet:
+        shore = {p: t for p, t in cells.items() if p in wet}
+        rest = {p: t for p, t in cells.items() if p not in wet}
+        out = stamp_filter(sid, name, rest, background)
+        out.update(shore)
+        return out
+    if sid == 'market':
+        if n == 'walls_grass':
+            return {p: t for p, t in cells.items() if t[:3] not in background and not (T.coverage(t) >= 0.97 and tile_mean(t)[1] > tile_mean(t)[0] + 12)}
+        return dict(cells)
+    if is_over(name) or is_water(name):
+        return dict(cells)
+    if n.startswith(TUFT_LAYERS):
+        return {}
+    return {p: t for p, t in cells.items() if t[:3] not in background}
+
+
 def dirt_autotile(mask):
     """mask: set of (x, y) road cells -> {(x, y): tile}."""
     out = {}
@@ -132,24 +230,54 @@ def build_town():
     detail = {}
     for x in range(W):
         for y in range(H):
-            if random.random() < 0.07:
+            if random.random() < 0.16:
                 detail[(x, y)] = tile(random.choice(GRASS_VARIANTS))
     layers.append(('grass_detail', detail))
 
-    # scenes
+    # darker grass patches so the base isn't one flat colour
+    spots = {}
+    rng = random.Random(3)
+    for _ in range(90):
+        cx, cy = rng.randrange(W), rng.randrange(H)
+        for dx in range(rng.randrange(1, 4)):
+            for dy in range(rng.randrange(1, 3)):
+                spots[(cx + dx, cy + dy)] = tile(rng.choice(SPOT_IDS), GROUND_DETAILS)
+    layers.append(('spots', spots))
+
+    # dirt yards under the Lift Station and the Clinic, laid before the scenes
+    yard = set()
+    for x0, x1, y0, y1 in YARDS:
+        yard |= organic({(x, y) for x in range(x0, x1 + 1) for y in range(y0, y1 + 1)}, rng, erode=1)
+
+    # scenes, minus their own flat fills (their dirt yards are redrawn with the shared autotile)
+    scene_layers = []
+    wet_town = set()
     for sid, path, ox, oy, skip in STAMPS:
         sl, _ = T.load_tmx(path)
+        background, dirt = scene_background(sl, skip) if sid != 'market' else (set(), set())
+        wet = {p for name, cells in sl if is_water(name) and name not in skip for p, t in cells.items() if T.coverage(t) >= 0.5}
+        wet_town |= {(x + ox, y + oy) for (x, y) in wet}
+        yard |= organic({(x + ox, y + oy) for (x, y) in dirt if (x, y) not in wet}, rng, erode=3 if sid == 'herb' else 1)
         for name, cells in sl:
             if name in skip:
                 continue
-            layers.append((sid + '/' + name, {(x + ox, y + oy): t for (x, y), t in cells.items()}))
+            kept = stamp_filter(sid, name, cells, background, frozenset(wet))
+            if kept:
+                scene_layers.append((sid + '/' + name, {(x + ox, y + oy): t for (x, y), t in kept.items()}))
+    yard -= wet_town
+    layers.append(('yards', dirt_autotile(yard)))
+    layers.extend(scene_layers)
+    # water is drawn beneath the ground image, so the town's own grass must not cover a pond
+    for name, cells in layers:
+        if name in ('base', 'grass_detail', 'spots'):
+            for c in wet_town:
+                cells.pop(c, None)
 
-    # roads (drawn over the stamps' grass so they join the yards)
+    # roads: a wandering main road plus the branches to each door
     mask = set()
-    for x0, x1, y0, y1 in ROADS_H:
-        for x in range(x0, x1 + 1):
-            for y in range(y0, y1 + 1):
-                mask.add((x, y))
+    for x in range(W):
+        for dy in range(3):
+            mask.add((x, road_y(x) + dy))
     for x0, x1, y0, y1 in ROADS_V:
         for x in range(x0, x1 + 1):
             for y in range(y0, y1 + 1):
@@ -267,7 +395,8 @@ def bake_town(preview_dir):
     out_dir = os.path.join(OUT, 'greyhaven')
     force_walk = [c for d in DOORS for c in d['cells']] + [ENTRY, EXIT]
     force_solid = [(WELL_AT[0] + c, WELL_AT[1] + r) for r in (1, 2) for c in (0, 1)]
-    solid, comp = T.bake(out_dir, layers, W, H, water, over, force_walkable=force_walk, force_solid=force_solid)
+    solid, comp = T.bake(out_dir, layers, W, H, water, over, force_walkable=force_walk, force_solid=force_solid,
+                         base_layers=('base', 'grass_detail', 'spots', 'yards', 'road', 'plaza'))
     for c in force_walk:
         assert c in comp, 'door/entry %s is not reachable' % (c,)
     npcs = []
